@@ -73,15 +73,15 @@
   perspective: 1400px;
 }
 
-/* Menú de acciones (truco, envido, etc) */
 .side-menu-25d {
   position: absolute;
   right: 30px;
-  top: 140px;
+  top: 150px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+
 
 .action-btn {
   background: rgba(0,0,0,0.6);
@@ -107,3 +107,25 @@
   display: flex;
   gap: 20px;
 }
+/* --- BOTONES DEL SISTEMA (Repartir / Volver) --- */
+
+.system-btn {
+  width: 140px;
+  padding: 10px 0;
+  margin-top: 6px;
+  background-color: #333;
+  color: #f5f5f5;
+  font-weight: bold;
+  border: 2px solid #888;
+  border-radius: 8px;
+  text-align: center;
+  transition: 0.2s;
+}
+
+.system-btn:hover {
+  background-color: #555;
+  border-color: #ccc;
+  transform: scale(1.05);
+}
+
+

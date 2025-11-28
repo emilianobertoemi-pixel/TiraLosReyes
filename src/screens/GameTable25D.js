@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
-import "./table25d.css"; // lo creamos en el paso 2
+import AnotadorTruco from "../components/AnotadorTruco";   // ← NUEVO
+import "./table25d.css";
 
 export default function GameTable25D() {
   const navigate = useNavigate();
@@ -9,7 +10,6 @@ export default function GameTable25D() {
   const query = new URLSearchParams(window.location.search);
   const players = parseInt(query.get("players") || 2);
 
-  // mazo simple (luego lo reemplazamos)
   const ranks = ["1", "2", "3", "4", "5", "6", "7", "10", "11", "12"];
   const suits = ["♥", "♦", "♣", "♠"];
 
@@ -34,16 +34,9 @@ export default function GameTable25D() {
   };
 
   const [deck, setDeck] = useState(shuffle(generateDeck()));
-
-  // manos por jugador
-  const [hands, setHands] = useState(
-    Array.from({ length: players }, () => [])
-  );
-
-  // cartas jugadas en mesa
+  const [hands, setHands] = useState(Array.from({ length: players }, () => []));
   const [tableCards, setTableCards] = useState([]);
 
-  // repartir
   const deal = () => {
     const newHands = Array.from({ length: players }, () => []);
     let d = [...deck];
@@ -77,46 +70,44 @@ export default function GameTable25D() {
         backgroundImage: "url('/assets/backgrounds/tapete-mesa.jpg')",
       }}
     >
-      {/* Nombre arriba */}
-      <h1 className="mesa25d-title">TIRA LOS REYES</h1>
 
-      {/* Tapete 2.5D */}
-      <div className="mesa25d-tapete">
+      {/* 🔥 Marcador del Truco (nuevo anotador estilizado) */}
+      <AnotadorTruco className="anotador-lateral" />
 
-        {/* Cartas del rival (solo si hay 2 jugadores por ahora) */}
-        <div className="opponent-hand">
-          {hands[1] &&
-            hands[1].map((card, i) => (
-              <Card
-                key={card.id}
-                rank={card.rank}
-                faceUp={false} // ocultas del rival
-                style={{
-                  transform: `translateX(${i * 20}px) rotate(180deg)`
-                }}
-              />
-            ))}
-        </div>
+      {/* Cartas jugadas en el centro */}
+      <div className="mesa25d-center">
+        {tableCards.map((c, i) => (
+          <Card
+            key={c.id + "-" + i}
+            rank={c.rank}
+            faceUp={true}
+            style={{
+              left: `${i * 50}px`,
+              top: `${i * 10}px`,
+              position: "absolute",
+              transform: "translate(-50%, -50%)",
+              zIndex: 30 + i
+            }}
+          />
+        ))}
+      </div>
 
-        {/* Cartas jugadas al centro */}
-        <div className="mesa25d-center">
-          {tableCards.map((c, i) => (
+      {/* Mano rival (arriba) */}
+      <div className="opponent-hand">
+        {hands[1] &&
+          hands[1].map((card, i) => (
             <Card
-              key={c.id + "-" + i}
-              rank={c.rank}
-              faceUp={true}
+              key={card.id}
+              rank={card.rank}
+              faceUp={false}
               style={{
-                left: `${i * 50}px`,
-                top: `${i * 10}px`,
-                position: "absolute",
-                transform: "translate(-50%, -50%)"
+                transform: `translateX(${i * 20}px) rotate(180deg)`
               }}
             />
           ))}
-        </div>
       </div>
 
-      {/* Mano propia en primer plano */}
+      {/* Mano propia */}
       <div className="player-hand-25d">
         {hands[0] &&
           hands[0].map((card, i) => (
@@ -133,19 +124,34 @@ export default function GameTable25D() {
           ))}
       </div>
 
-      {/* Menú lateral */}
+      {/* MENÚ DERECHO: Cantos del Truco + Controles */}
       <div className="side-menu-25d">
+
+        {/* Cantos del truco */}
         <button className="action-btn">Truco</button>
+        <button className="action-btn">Quiero Re Truco</button>
+        <button className="action-btn">Quiero Vale Cuatro</button>
         <button className="action-btn">Envido</button>
         <button className="action-btn">Real Envido</button>
         <button className="action-btn">Falta Envido</button>
         <button className="action-btn">Flor</button>
-      </div>
+        <button className="action-btn">Quiero</button>
+        <button className="action-btn">No quiero</button>
 
-      {/* Controles de la partida */}
-      <div className="control-bar-25d">
-        <button className="casio-btn" onClick={deal}>Repartir</button>
-        <button className="casio-btn" onClick={() => navigate(-1)}>Volver</button>
+        {/* Separador */}
+        <div
+          style={{
+            width: "100%",
+            height: "2px",
+            background: "rgba(255,255,255,0.25)",
+            margin: "15px 0"
+          }}
+        />
+
+        {/* Controles */}
+        <button className="system-btn" onClick={deal}>Repartir</button>
+        <button className="system-btn" onClick={() => navigate(-1)}>Volver</button>
+
       </div>
     </div>
   );

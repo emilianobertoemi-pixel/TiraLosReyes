@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
+import ScoreBoard from "../components/ScoreBoard";
 import "./table2d.css";
 
 export default function GameTable2D() {

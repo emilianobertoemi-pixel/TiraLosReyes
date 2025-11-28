@@ -1,0 +1,109 @@
+/* Fondo general */
+.mesa25d-container {
+  width: 100%;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Título superior */
+.mesa25d-title {
+  font-size: 42px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0px 0px 8px black, 2px 2px 4px rgba(0,0,0,0.4);
+  text-align: center;
+  margin-top: 20px;
+  letter-spacing: 3px;
+}
+
+/* Mesa con perspectiva */
+.mesa25d-tapete {
+  width: 85%;
+  height: 50vh;
+  background: rgba(0, 80, 0, 0.85);
+  border: 12px solid #3b2a18; /* borde madera */
+  border-radius: 20px;
+  margin: 40px auto 0 auto;
+  
+  box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.7);
+
+  /* PERSPECTIVA 2.5D */
+  transform: perspective(900px) rotateX(12deg);
+  
+  position: relative;
+}
+
+/* Mano del Oponente */
+.opponent-hand {
+  position: absolute;
+  top: -55px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 25px;
+  opacity: 0.8;
+}
+
+/* Cartas jugadas */
+.mesa25d-center {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 180px;
+  pointer-events: none;
+}
+
+/* Mano del jugador (primer plano) */
+.player-hand-25d {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  display: flex;
+  gap: 40px;
+
+  /* efecto que simula que están apoyadas en la mesa */
+  transform-style: preserve-3d;
+  perspective: 1400px;
+}
+
+/* Menú de acciones (truco, envido, etc) */
+.side-menu-25d {
+  position: absolute;
+  right: 30px;
+  top: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.action-btn {
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Barra inferior (repartir, volver) */
+.control-bar-25d {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+}

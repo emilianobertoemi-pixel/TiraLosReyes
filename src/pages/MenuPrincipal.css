@@ -1,0 +1,26 @@
+.menu-container {
+    background: #f6e7c5;
+    padding: 40px;
+    border-radius: 12px;
+    width: 400px;
+    margin: 50px auto;
+    text-align: center;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  }
+  
+  .boton {
+    background: #8b5e34;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    font-size: 18px;
+    margin: 10px 0;
+    width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  
+  .boton:hover {
+    background: #a47148;
+  }

@@ -1,0 +1,57 @@
+.card {
+  width: 60px;
+  height: 90px;
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  user-select: none;
+  cursor: pointer;
+  position: absolute;
+}
+
+.face-down {
+  background: #222;
+  color: white;
+}
+
+.card-rank {
+  font-size: 20px;
+}
+
+.card-animate {
+  position: absolute;
+  width: 80px;   /* antes 60 */
+  height: 120px; /* antes 90 */
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+
+  transition: all 0.5s ease-out, transform 0.5s ease-out;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.7) rotate(0deg);
+}
+
+
+.card-animate.card-in-hand {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(var(--rotate, 0deg));
+}
+/* ✨ Animación de giro durante el vuelo */
+.card-animate {
+  transition: all 0.5s ease-out, transform 0.5s ease-out;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+}
+
+.card-animate.fly {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.2) rotate(360deg);
+}

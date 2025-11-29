@@ -1,18 +1,26 @@
 import React from "react";
 import "./Card.css";
+import backImg from "../assets/cards/back.jpg";
 
-export default function Card({ id, rank, faceUp, style, className, onClick }) {
+export default function Card({ img, faceUp, style, className, onClick }) {
   return (
-    <div
-      className={`card ${faceUp ? "face-up" : "face-down"} ${className || ""}`}
-      style={style}
+    <img
+      src={faceUp ? img : backImg}
+      alt="carta"
+      className={className}
       onClick={onClick}
-    >
-      {faceUp ? (
-        <span className="card-rank">{rank}</span>
-      ) : (
-        <span className="card-back">★</span>
-      )}
-    </div>
+      draggable="false"
+      style={{
+  width: "90px",
+  height: "150px",
+  borderRadius: "8px",
+  position: "absolute",
+  cursor: faceUp ? "pointer" : "default",
+  background: "red",   // ← TEST
+  zIndex: 9999,
+  ...style
+}}
+
+    />
   );
 }

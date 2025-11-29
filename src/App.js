@@ -7,7 +7,6 @@ import Mazos from "./pages/Mazos";
 import Ajustes from "./pages/Ajustes";
 import GameTable from "./screens/GameTable";
 import SalaDeMesa from "./screens/SalaDeMesa";
-import GameTable2D from "./screens/GameTable2D";
 import GameTable25D from "./screens/GameTable25D";
 import "./styles/casio.css";
 
@@ -24,7 +23,6 @@ function App() {
         <Route path="/mazos" element={<Mazos />} />
         <Route path="/ajustes" element={<Ajustes />} />
         <Route path="/table" element={<GameTable />} />
-        <Route path="/table2d" element={<GameTable2D />} />
         <Route path="/table25d" element={<GameTable25D />} />
       </Routes>
     </Router>

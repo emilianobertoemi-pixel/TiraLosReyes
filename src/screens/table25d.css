@@ -24,15 +24,11 @@
   width: 85%;
   height: 50vh;
   background: rgba(0, 80, 0, 0.85);
-  border: 12px solid #3b2a18; /* borde madera */
+  border: 12px solid #3b2a18;
   border-radius: 20px;
   margin: 40px auto 0 auto;
-  
   box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.7);
-
-  /* PERSPECTIVA 2.5D */
   transform: perspective(900px) rotateX(12deg);
-  
   position: relative;
 }
 
@@ -58,17 +54,14 @@
   pointer-events: none;
 }
 
-/* Mano del jugador (primer plano) */
+/* Mano del jugador */
 .player-hand-25d {
   position: absolute;
   bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
-  
   display: flex;
   gap: 40px;
-
-  /* efecto que simula que están apoyadas en la mesa */
   transform-style: preserve-3d;
   perspective: 1400px;
 }
@@ -76,12 +69,11 @@
 .side-menu-25d {
   position: absolute;
   right: 30px;
-  top: 150px;
+ top: 150px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-
 
 .action-btn {
   background: rgba(0,0,0,0.6);
@@ -98,7 +90,6 @@
   background: rgba(255,255,255,0.2);
 }
 
-/* Barra inferior (repartir, volver) */
 .control-bar-25d {
   position: absolute;
   bottom: 20px;
@@ -107,7 +98,6 @@
   display: flex;
   gap: 20px;
 }
-/* --- BOTONES DEL SISTEMA (Repartir / Volver) --- */
 
 .system-btn {
   width: 140px;
@@ -127,5 +117,3 @@
   border-color: #ccc;
   transform: scale(1.05);
 }
-
-

@@ -1,17 +1,11 @@
 .card {
-  width: 60px;
-  height: 90px;
-  background: white;
-  border: 2px solid #333;
+  width: 90px;
+  height: 150px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
   user-select: none;
   cursor: pointer;
-  position: absolute;
 }
+
 
 .face-down {
   background: #222;

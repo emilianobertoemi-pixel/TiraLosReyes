@@ -7,20 +7,10 @@ export default function Card({ img, faceUp, style, className, onClick }) {
     <img
       src={faceUp ? img : backImg}
       alt="carta"
-      className={className}
+      className={className ? `card ${className}` : "card"}
       onClick={onClick}
       draggable="false"
-      style={{
-  width: "90px",
-  height: "150px",
-  borderRadius: "8px",
-  position: "absolute",
-  cursor: faceUp ? "pointer" : "default",
-  background: "red",   // ← TEST
-  zIndex: 9999,
-  ...style
-}}
-
+      style={style}
     />
   );
 }

@@ -12,22 +12,20 @@ export default function GameTable25D() {
 
   // ================= ESTADO GENERAL =================
   const [deck, setDeck] = useState(() => shuffle(generateDeck()));
-  const [hands, setHands] = useState([[], []]); // [mano J1, mano J2]
+  const [hands, setHands] = useState([[], []]);
 
-  // Mesa: TODAS las cartas jugadas, en orden
-  // index 0–1 → ronda 1 / 2–3 → ronda 2 / 4–5 → ronda 3
+  // Mesa: TODAS las cartas jugadas
   const [table, setTable] = useState([]);
 
-  // Estado de la partida (3 rondas)
+  // Estado de la partida
   const [truco, setTruco] = useState({
-    mano: "P1",                 // por ahora siempre J1 es mano
-    turno: "P1",                // quién debe tirar AHORA ("P1" o "P2")
-    winners: [null, null, null],// ganadores de cada ronda ("P1","P2","Parda")
-    finished: false,            // true cuando la partida ya se definió
-    ganadorPartida: null        // "P1" | "P2" cuando alguien gana la partida
+    mano: "P1",
+    turno: "P1",
+    winners: [null, null, null],
+    finished: false,
+    ganadorPartida: null
   });
 
-  // Puntos del JUEGO (hasta 30)
   const [pointsP1, setPointsP1] = useState(0);
   const [pointsP2, setPointsP2] = useState(0);
 
@@ -45,9 +43,8 @@ export default function GameTable25D() {
     setDeck(d);
     setTable([]);
 
-    // Reiniciamos estado de la partida
     setTruco({
-      mano: "P1",              // más adelante podemos alternar
+      mano: "P1",
       turno: "P1",
       winners: [null, null, null],
       finished: false,
@@ -57,10 +54,7 @@ export default function GameTable25D() {
 
   // ================== JUGAR CARTA — J1 ==================
   const playCard = (playerIndex, cardIndex) => {
-    // Si la partida ya se definió → no deja tirar
     if (truco.finished) return;
-
-    // Solo permitimos que juegue J1 cuando es su turno
     if (playerIndex === 0 && truco.turno !== "P1") return;
 
     const carta = hands[playerIndex][cardIndex];
@@ -69,68 +63,126 @@ export default function GameTable25D() {
     const newHands = hands.map((h, idx) =>
       idx === playerIndex ? h.filter((_, i) => i !== cardIndex) : h
     );
+
     setHands(newHands);
 
-    // Agregamos carta a la mesa (sin preocuparnos por la ronda, va en orden)
     setTable(prev => [...prev, { from: playerIndex, card: carta }]);
 
-    // Después de tirar J1, en principio le tocaría a J2
     setTruco(prev => ({ ...prev, turno: "P2" }));
   };
 
-  // ================== JUGAR CARTA — J2 (BOT) ==================
+  // ================== JUGAR CARTA — J2 ==================
   const opponentPlay = () => {
     if (truco.finished) return;
     if (truco.turno !== "P2") return;
 
     setHands(prevHands => {
-      const rivalHand = prevHands[1];
-      if (!rivalHand || rivalHand.length === 0) return prevHands;
+      const rival = prevHands[1];
+      if (rival.length === 0) return prevHands;
 
-      const rivalCard = rivalHand[0];
+      const card = rival[0];
+      const updated = [prevHands[0], rival.slice(1)];
 
-      const updatedHands = [
-        [...prevHands[0]],
-        rivalHand.slice(1)
-      ];
+      setTable(prev => [...prev, { from: 1, card }]);
 
-      setTable(prev => [...prev, { from: 1, card: rivalCard }]);
-
-      // Por ahora, después de tirar J2, dejamos turno en P1
-      // (la lógica de rondas lo ajustará si tiene que volver a tirar J2)
       setTruco(prev => ({ ...prev, turno: "P1" }));
 
-      return updatedHands;
+      return updated;
     });
   };
 
-  // Cuando el turno pasa a P2 → el bot juega
+  // ================== LOGICA DEL BOT ==================
   useEffect(() => {
     if (truco.finished) return;
-    if (truco.turno === "P2") {
-      setTimeout(() => opponentPlay(), 600);
-    }
-  }, [truco.turno, truco.finished]);
 
-  // ================== LÓGICA DE LAS 3 RONDAS ==================
+    const total = table.length;
+    const ronda = Math.floor(total / 2);
+    const cardsInRound = total % 2;
+
+    if (truco.turno !== "P2") return;
+
+    // RONDA 1
+    if (ronda === 0) {
+      if (cardsInRound === 1) {
+        setTimeout(() => opponentPlay(), 400);
+      }
+      return;
+    }
+
+    // RONDA 2
+    if (ronda === 1) {
+      const w1 = truco.winners[0];
+
+      // si J2 ganó ronda 1 y arranca ronda 2
+      if (w1 === "P2" && cardsInRound === 0) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
+
+      if (cardsInRound === 1) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
+
+      return;
+    }
+
+    // RONDA 3
+    if (ronda === 2) {
+      const w1 = truco.winners[0];
+      const w2 = truco.winners[1];
+
+      const start =
+        w2 === "Parda"
+          ? w1
+          : w2;
+
+      if (start === "P2" && cardsInRound === 0) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
+
+      if (cardsInRound === 1) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
+    }
+
+  }, [truco.turno, table, truco.finished, truco.winners]);
+
+  // ================== LÓGICA DE RONDAS ==================
   useEffect(() => {
     if (truco.finished) return;
     if (table.length === 0) return;
-
-    // Solo resolvemos cuando hay un par completo de cartas (2, 4 o 6)
     if (table.length % 2 !== 0) return;
 
-    const roundIndex = table.length / 2 - 1; // 0, 1 o 2
+    const roundIndex = table.length / 2 - 1;
     if (roundIndex < 0 || roundIndex > 2) return;
 
-    // Si esa ronda ya tiene ganador, no la volvemos a resolver
     if (truco.winners[roundIndex]) return;
 
-    const start = roundIndex * 2;
+        const start = roundIndex * 2;
     const c1 = table[start];
     const c2 = table[start + 1];
 
-    const ganador = determineHandWinner(c1.card, c2.card); // "P1" | "P2" | "Parda"
+    // Este resultado es relativo al orden de las cartas (primera o segunda)
+    const resultado = determineHandWinner(c1.card, c2.card); // "P1" | "P2" | "Parda"
+
+    // Ahora lo convertimos a ganador REAL del juego: "P1" (jugador 1), "P2" (jugador 2) o "Parda"
+    let ganador;
+    if (resultado === "Parda") {
+      ganador = "Parda";
+    } else if (resultado === "P1") {
+      // Ganó la PRIMERA carta → vemos de quién es
+      ganador = c1.from === 0 ? "P1" : "P2";
+    } else {
+      // resultado === "P2" → ganó la SEGUNDA carta
+      ganador = c2.from === 0 ? "P1" : "P2";
+    }
+
+    console.log(
+      `Ronda ${roundIndex + 1} → resultado bruto: ${resultado}, from c1=${c1.from}, from c2=${c2.from}, GANADOR REAL: ${ganador}`
+    );
 
     setTruco(prev => {
       const state = {
@@ -143,92 +195,87 @@ export default function GameTable25D() {
       const first = state.winners[0];
       const second = state.winners[1];
 
+
       // ========= RONDA 1 =========
       if (roundIndex === 0) {
         if (ganador === "Parda") {
-          // parda → tira el mano
           state.turno = mano;
         } else {
-          // gana alguien → ese tira la segunda
           state.turno = ganador;
         }
         return state;
       }
 
-      // ========= RONDA 2 =========
+      // ========= RONDA 2 — FIX COMPLETO =========
       if (roundIndex === 1) {
-        // ganador = ganador de la segunda ronda
+        // A) Segunda es Parda → define el de la primera
         if (ganador === "Parda") {
-          // Segunda parda
           if (first === "P1" || first === "P2") {
-            // Si alguien ganó la primera, gana la partida
             state.finished = true;
             state.ganadorPartida = first;
             state.turno = null;
-          } else {
-            // Parda en 1ª y 2ª → se juega 3ª, tira el mano
-            state.turno = mano;
+            return state;
           }
+
+          // parda1 + parda2 → mano inicia ronda 3
+          state.turno = mano;
           return state;
         }
 
-        // Segunda NO es parda (gana P1 o P2)
+        // B) Primera fue parda, segunda tiene ganador
         if (first === "Parda") {
-          // Si la 1ª fue parda, el que gana la 2ª gana la partida
           state.finished = true;
           state.ganadorPartida = ganador;
           state.turno = null;
           return state;
         }
 
+        // C) Si mismo ganador en 1° y 2°
         if (first === ganador) {
-          // Mismo ganador en 1ª y 2ª → gana la partida
           state.finished = true;
           state.ganadorPartida = ganador;
           state.turno = null;
           return state;
         }
 
-        // Distintos ganadores → 1 a 1 → se juega la 3ª
-        // Tira el que ganó la segunda
+        // D) Van 1 a 1 → hay ronda 3 → arranca ganador de la segunda
         state.turno = ganador;
         return state;
       }
 
       // ========= RONDA 3 =========
       if (roundIndex === 2) {
-        let ganadorPartida;
+        let final;
 
         if (ganador === "Parda") {
-          // Si la 3ª es parda, vemos quién tiene más rondas ganadas
-          const p1Wins = [first, second].filter(w => w === "P1").length;
-          const p2Wins = [first, second].filter(w => w === "P2").length;
+          const p1 = [first, second].filter(w => w === "P1").length;
+          const p2 = [first, second].filter(w => w === "P2").length;
 
-          if (p1Wins > p2Wins) ganadorPartida = "P1";
-          else if (p2Wins > p1Wins) ganadorPartida = "P2";
-          else ganadorPartida = mano; // triple parda o totalmente empatado
+          if (p1 > p2) final = "P1";
+          else if (p2 > p1) final = "P2";
+          else final = mano;
         } else {
-          // Si alguien gana la 3ª → ese gana la partida
-          ganadorPartida = ganador;
+          final = ganador;
         }
 
         state.finished = true;
-        state.ganadorPartida = ganadorPartida;
+        state.ganadorPartida = final;
         state.turno = null;
         return state;
       }
 
       return state;
     });
+
   }, [table, truco.finished, truco.winners, truco.mano]);
 
-  // ================== SUMAR PUNTOS DE LA PARTIDA ==================
+  // ================== SUMAR PUNTOS ==================
   useEffect(() => {
-    const ganador = truco.ganadorPartida;
-    if (!ganador) return;
+    const g = truco.ganadorPartida;
+    if (!g) return;
 
-    if (ganador === "P1") setPointsP1(p => p + 1);
-    if (ganador === "P2") setPointsP2(p => p + 1);
+    if (g === "P1") setPointsP1(p => p + 1);
+    if (g === "P2") setPointsP2(p => p + 1);
   }, [truco.ganadorPartida]);
 
   // ======================== RENDER ========================
@@ -307,13 +354,10 @@ export default function GameTable25D() {
         <button className="action-btn">Truco</button>
         <button className="action-btn">Re Truco</button>
         <button className="action-btn">Vale Cuatro</button>
-
         <button className="action-btn">Envido</button>
         <button className="action-btn">Real Envido</button>
         <button className="action-btn">Falta Envido</button>
-
         <button className="action-btn">Flor</button>
-
         <button className="action-btn">Quiero</button>
         <button className="action-btn">No quiero</button>
 

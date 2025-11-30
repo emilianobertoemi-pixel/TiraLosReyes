@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Home from "./screens/Home";
 import MenuPrincipal from "./pages/MenuPrincipal";
 import SelectRoom from "./screens/SelectRoom";
 import RoomCreate from "./screens/RoomCreate";
@@ -14,7 +13,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<MenuPrincipal />} />
         <Route path="/menu" element={<MenuPrincipal />} />
         <Route path="/select-room" element={<SelectRoom />} />
         <Route path="/mesas" element={<SelectRoom />} />

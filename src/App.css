@@ -36,3 +36,28 @@
     transform: rotate(360deg);
   }
 }
+body {
+  margin: 0;
+  padding: 0;
+  background-image: url("/assets/backgrounds/fondo-menu.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+@keyframes cardAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card {
+  animation: cardAppear 220ms ease-out;
+}

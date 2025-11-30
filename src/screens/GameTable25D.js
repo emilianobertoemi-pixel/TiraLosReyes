@@ -3,32 +3,39 @@ import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
 import AnotadorTruco from "../components/AnotadorTruco";
 import "./table25d.css";
+
 import { generateDeck, shuffle } from "../data/deck";
-import { compareCards } from "../utils/compareCards";
+
+import { determineHandWinner } from "../gameLogic/truco/determineHandWinner";
+import { determineRoundWinner } from "../gameLogic/truco/determineRoundWinner";
+import { nextPlayerAfterFirstHand } from "../gameLogic/truco/turnManager";
 
 export default function GameTable25D() {
   const navigate = useNavigate();
 
-  // Cantidad real de jugadores
+  // Cantidad de jugadores (por ahora 2)
   const query = new URLSearchParams(window.location.search);
   const players = parseInt(query.get("players") || 2);
 
-  // Mazo inicial generado una sola vez
+  // Mazo inicial
   const [deck, setDeck] = useState(() => shuffle(generateDeck()));
 
-  // Manos según jugadores
+  // Manos
   const [hands, setHands] = useState(
     Array.from({ length: players }, () => [])
   );
 
-  // Todas las cartas jugadas agrupadas por manos
-  const [tableTricks, setTableTricks] = useState([]);
+  // Mesa (todas las cartas jugadas, agrupadas por mano)
+  const [table, setTable] = useState([]);
 
   // Mano actual (1, 2 o 3)
   const [currentTrick, setCurrentTrick] = useState(1);
 
-  // Registro de ganadores de cada mano: "P1", "P2", "Parda"
+  // Ganadores de las manos ["P1", "P2", "Parda"]
   const [trickWinners, setTrickWinners] = useState([]);
+
+  // Quién es mano en esta ronda
+  const [mano, setMano] = useState("P1"); // empieza siempre P1 en la primera ronda
 
   // Puntos
   const [pointsP1, setPointsP1] = useState(0);
@@ -37,7 +44,7 @@ export default function GameTable25D() {
   // ============================================
   //                 REPARTIR
   // ============================================
-  const deal = () => {
+  const deal = (nextMano = mano) => {
     let d = [...deck];
 
     if (d.length < players * 3) {
@@ -55,9 +62,10 @@ export default function GameTable25D() {
 
     setHands(newHands);
     setDeck(d);
-    setTableTricks([]);     // limpiamos la mesa recién ahora
-    setCurrentTrick(1);
+    setTable([]);
     setTrickWinners([]);
+    setCurrentTrick(1);
+    setMano(nextMano);
   };
 
   // ============================================
@@ -67,25 +75,20 @@ export default function GameTable25D() {
     const card = hands[playerIndex]?.[cardIndex];
     if (!card) return;
 
-    const newHands = hands.map((h, idx) =>
-      idx === playerIndex ? h.filter((_, i) => i !== cardIndex) : h
+    const newHands = hands.map((hand, idx) =>
+      idx === playerIndex ? hand.filter((_, i) => i !== cardIndex) : hand
     );
-
     setHands(newHands);
 
-    // Agregar carta a la mesa en la mano actual
-    setTableTricks(prev => {
+    setTable((prev) => {
       const updated = [...prev];
-
       if (!updated[currentTrick - 1]) {
         updated[currentTrick - 1] = { trick: currentTrick, cards: [] };
       }
-
       updated[currentTrick - 1].cards.push({ ...card, from: playerIndex });
       return updated;
     });
 
-    // Si jugás vos (P1) → el otro responde
     if (playerIndex === 0 && players >= 2) {
       setTimeout(() => {
         opponentPlay();
@@ -96,99 +99,56 @@ export default function GameTable25D() {
   // ============================================
   //              JUEGA EL RIVAL
   // ============================================
-  // JUEGA EL RIVAL
-const opponentPlay = (trickOverride = null) => {
-  setHands((prevHands) => {
-    const rivalHand = prevHands[1];
-    if (!rivalHand || rivalHand.length === 0) return prevHands;
+  const opponentPlay = () => {
+    setHands((prevHands) => {
+      const rivalHand = prevHands[1];
+      if (!rivalHand || rivalHand.length === 0) return prevHands;
 
-    const rivalCard = rivalHand[0];
+      const rivalCard = rivalHand[0];
 
-    const updatedHands = [
-      [...prevHands[0]],      // tu mano igual
-      rivalHand.slice(1),     // rival sin la primera carta
-    ];
+      const updatedHands = [
+        [...prevHands[0]],
+        rivalHand.slice(1),
+      ];
 
-    setTableTricks((prev) => {
-      const updated = [...prev];
+      setTable((prev) => {
+        const updated = [...prev];
 
-      // si me pasan un número de mano, uso ese; si no, uso la actual
-      const trickNumber = trickOverride ?? currentTrick;
-      const trickIndex = trickNumber - 1;
+        if (!updated[currentTrick - 1]) {
+          updated[currentTrick - 1] = { trick: currentTrick, cards: [] };
+        }
 
-      if (!updated[trickIndex]) {
-        updated[trickIndex] = { trick: trickNumber, cards: [] };
-      }
+        updated[currentTrick - 1].cards.push({ ...rivalCard, from: 1 });
+        return updated;
+      });
 
-      updated[trickIndex].cards.push({ ...rivalCard, from: 1 });
-
-      return updated;
+      return updatedHands;
     });
+  };
 
-    return updatedHands;
-  });
-};
-
-
-  // FIN PARTE 1
   // ============================================
   //     LÓGICA COMPLETA DEL TRUCO (1ra, 2da, 3ra)
   // ============================================
   useEffect(() => {
-    const manoActual = tableTricks[currentTrick - 1];
-
-    // Esperar a que haya 2 cartas jugadas en esta mano
+    const manoActual = table[currentTrick - 1];
     if (!manoActual || manoActual.cards.length < 2) return;
 
     const [c1, c2] = manoActual.cards;
-    const result = compareCards(c1, c2);
+    const winner = determineHandWinner(c1, c2);
 
-    const winner =
-      result === 1 ? "P1" :
-      result === -1 ? "P2" :
-      "Parda";
-
-    console.log(`Mano ${currentTrick}: ${winner}`);
-
-    setTrickWinners(prev => [...prev, winner]);
+    setTrickWinners((prev) => [...prev, winner]);
 
     setTimeout(() => {
-      // =========================
-      //         1° MANO
-      // =========================
-      // =========================
-//         1° MANO
-// =========================
-if (currentTrick === 1) {
-  const nextTrick = 2;
+      // 1° MANO
+      if (currentTrick === 1) {
+        setCurrentTrick(2);
+        if (winner === "P2") {
+          setTimeout(() => opponentPlay(), 600);
+        }
+        return;
+      }
 
-  if (winner === "P1") {
-    // Vos ganaste la primera → vos empezás la segunda
-    setCurrentTrick(nextTrick);
-    return;
-  }
-
-  if (winner === "P2") {
-    // El rival ganó la primera → él empieza la segunda
-    setCurrentTrick(nextTrick);
-
-    setTimeout(() => {
-      opponentPlay(nextTrick); // 👈 juega de MANO en la 2° mano
-    }, 600);
-
-    return;
-  }
-
-  if (winner === "Parda") {
-    // Parda en la 1° → sigue el orden normal, arrancás vos
-    setCurrentTrick(nextTrick);
-    return;
-  }
-}
-
-      // =========================
-      //         2° MANO
-      // =========================
+      // 2° MANO
       if (currentTrick === 2) {
         const first = trickWinners[0];
 
@@ -206,44 +166,32 @@ if (currentTrick === 1) {
         return;
       }
 
-      // =========================
-      //         3° MANO
-      // =========================
+      // 3° MANO
       if (currentTrick === 3) {
         const first = trickWinners[0];
-
-        if (winner === "P1" || winner === "P2") {
-          endRound(winner);
-          return;
-        }
-
-        if (winner === "Parda") {
-          endRound(first);
-          return;
-        }
+        const roundWinner = winner === "Parda" ? first : winner;
+        endRound(roundWinner);
       }
 
-    }, 900);
-  }, [tableTricks]);
+    }, 800);
 
+  }, [table]);
 
   // ============================================
   //             GANADOR DE LA RONDA
   // ============================================
   const endRound = (winner) => {
-    console.log("GANADOR DE LA RONDA:", winner);
+    if (winner === "P1") setPointsP1((p) => p + 1);
+    if (winner === "P2") setPointsP2((p) => p + 1);
 
-    if (winner === "P1") setPointsP1(p => p + 1);
-    if (winner === "P2") setPointsP2(p => p + 1);
+    const nextMano = winner; // regla B que vos pediste
 
     setTimeout(() => {
-      deal();
+      deal(nextMano);
     }, 1200);
   };
 
-  // FIN PARTE 2
-
-    // ============================================
+  // ============================================
   //                RENDER
   // ============================================
   return (
@@ -253,25 +201,20 @@ if (currentTrick === 1) {
         backgroundImage: "url('/assets/backgrounds/tapete-mesa.jpg')",
       }}
     >
-      <AnotadorTruco
-        puntosP1={pointsP1}
-        puntosP2={pointsP2}
-      />
+      <AnotadorTruco puntosP1={pointsP1} puntosP2={pointsP2} />
 
-      {/* CARTAS EN EL CENTRO */}
+      {/* CARTAS EN MESA */}
       <div className="mesa25d-center">
-        {tableTricks.map((mano, trickIndex) =>
+        {table.map((mano, trickIndex) =>
           mano.cards.map((c, i) => (
             <Card
-              key={c.id + "-" + trickIndex}
+              key={c.id + "-" + trickIndex + "-" + i}
               img={c.img}
               faceUp={true}
               style={{
                 position: "absolute",
-
                 top: `${-50 + trickIndex * 70}px`,
                 left: `${i * 40}px`,
-
                 transform: "translate(-50%, -50%)",
                 zIndex: trickIndex * 10 + i,
               }}
@@ -323,7 +266,7 @@ if (currentTrick === 1) {
         ))}
       </div>
 
-      {/* MENÚ LATERAL */}
+      {/* MENÚ */}
       <div className="side-menu-25d">
         <button className="action-btn">Truco</button>
         <button className="action-btn">Re Truco</button>
@@ -343,7 +286,7 @@ if (currentTrick === 1) {
           }}
         />
 
-        <button className="system-btn" onClick={deal}>
+        <button className="system-btn" onClick={() => deal(mano)}>
           Repartir
         </button>
         <button className="system-btn" onClick={() => navigate(-1)}>
@@ -353,4 +296,3 @@ if (currentTrick === 1) {
     </div>
   );
 }
-

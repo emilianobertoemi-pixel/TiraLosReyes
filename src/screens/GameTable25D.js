@@ -267,33 +267,33 @@ export default function GameTable25D() {
     return () => clearTimeout(timer);
   }, [truco.esperandoRespuesta, truco.turno, truco.finished, hands]);
 
-  // ================== LÓGICA DEL BOT (cartas) ==================
+  // ================== LÓGICA DEL BOT (cartas + cantos) ==================
 useEffect(() => {
   if (truco.finished) return;
   if (truco.esperandoRespuesta) return;
 
-  //-------------------------------------------------------------
-  // 🧠 IA RONDA 1 — BOT AGRESIVO CANTA TRUCO SI SU MANO ES FUERTE
-  //-------------------------------------------------------------
-  const ronda = Math.floor(table.length / 2);
-  const cardsInRound = table.length % 2;
+  const total = table.length;
+  const ronda = Math.floor(total / 2);   // 0,1,2
+  const cardsInRound = total % 2;        // 0 o 1
+  const canBotAct = truco.turno === "P2";
 
-  if (
-    ronda === 0 &&
-    cardsInRound === 0 &&     // bot aún no tiró su primera carta
-    !truco.canto &&           // no hay truco en juego todavía
-    truco.quienCanto !== "P2" &&        // 🔥 el bot NO puede volver a cantar después de cantar él mismo
-    hands[1].length === 3
-  ) {
-    const evalBot = evaluateHand(hands[1]);
+  const manoBot = hands[1] || [];
 
-    const prob =
-      evalBot.level === "muy_fuerte" ? 0.90 :
-      evalBot.level === "fuerte"     ? 0.70 :
+  // ================== IA: INICIAR TRUCO (BOT AGRESIVO) ==================
+  // Bot puede cantar Truco SOLO si:
+  // - ya hubo al menos una acción (total > 0),
+  // - no hay truco todavía,
+  // - es su turno (canBotAct).
+  if (!truco.canto && canBotAct && total > 0 && manoBot.length === 3) {
+    const evalBot = evaluateHand(manoBot);
+
+    let probTruco =
+      evalBot.level === "muy_fuerte" ? 0.9 :
+      evalBot.level === "fuerte"     ? 0.7 :
       evalBot.level === "media"      ? 0.25 :
-      0.05;
+                                       0.05;
 
-    if (Math.random() < prob) {
+    if (Math.random() < probTruco) {
       setCantosLog(prev => [...prev, "Bot: Truco"]);
       setTruco(prev => ({
         ...prev,
@@ -302,33 +302,43 @@ useEffect(() => {
         quienCanto: "P2",
         esperandoRespuesta: true,
         turnoAntesDelCanto: prev.turno,
-        turno: "P1",
+        turno: "P1", // ahora respondés vos
       }));
-      return;
+      return; // no tira carta hasta que respondas
     }
   }
 
-  //-------------------------------------------------------------
-  // 🧠 IA RONDA 2 — BOT SUBE A RETRUCO SI TIENE VENTAJA
-  //-------------------------------------------------------------
+  // ================== IA: SUBIR A RETRUCO ==================
+  // Solo puede subir si:
+  // - ya hay Truco,
+  // - el último que cantó NO fue el bot (truco.quienCanto !== "P2"),
+  // - es su turno.
   if (
-    ronda === 1 &&
-    !truco.esperandoRespuesta &&
     truco.canto === "truco" &&
-    truco.quienCanto !== "P2" &&   // 🔥 si el BOT cantó truco, no puede cantar Re Truco
-    hands[1].length === 2
+    truco.quienCanto !== "P2" &&
+    canBotAct &&
+    manoBot.length >= 2
   ) {
-    const evalBot = evaluateHand(hands[1]);
+    const evalBot = evaluateHand(manoBot);
     const botGanoR1 = truco.winners[0] === "P2";
 
-    const prob =
-      botGanoR1                      ? 0.85 :
-      evalBot.level === "muy_fuerte" ? 0.75 :
-      evalBot.level === "fuerte"     ? 0.55 :
-      evalBot.level === "media"      ? 0.25 :
-      0.05;
+    // Si está en la última carta y esa última le gana, subimos fuerte
+    let extraFuerte = false;
+    if (hands[1].length === 1 && hands[0].length === 1) {
+      const result = determineHandWinner(hands[1][0], hands[0][0]);
+      extraFuerte = result === "P2";
+    }
 
-    if (Math.random() < prob) {
+    let probReTruco =
+      evalBot.level === "muy_fuerte" ? 0.7 :
+      evalBot.level === "fuerte"     ? 0.5 :
+      evalBot.level === "media"      ? 0.25 :
+                                       0.05;
+
+    if (botGanoR1) probReTruco = Math.min(probReTruco + 0.15, 0.9);
+    if (extraFuerte) probReTruco = 0.7;
+
+    if (Math.random() < probReTruco) {
       setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
       setTruco(prev => ({
         ...prev,
@@ -343,180 +353,66 @@ useEffect(() => {
     }
   }
 
-  //-------------------------------------------------------------
-  // 🧠 IA RONDA 3 — BOT SUBE A VALE CUATRO SI LA ÚLTIMA LE GANA
-  //-------------------------------------------------------------
+  // ================== IA: SUBIR A VALE CUATRO ==================
+  // Solo si:
+  // - ya hay ReTruco,
+  // - el último que cantó NO fue el bot,
+  // - es su turno.
   if (
-    truco.canto &&
-    truco.quienCanto !== "P2" &&    // 🔥 bot NO puede subir si el truco lo cantó él
-    !truco.esperandoRespuesta &&
-    hands[1].length === 1 &&
-    hands[0].length === 1
+    truco.canto === "retruco" &&
+    truco.quienCanto !== "P2" &&
+    canBotAct
   ) {
-    const cartaBot = hands[1][0];
-    const cartaTuya = hands[0][0];
-
-    const result = determineHandWinner(cartaBot, cartaTuya);
-    const botGanaUltima = result === "P2";
-
-    if (botGanaUltima && Math.random() < 0.70) {
-      if (truco.canto === "truco") {
-        setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
-        setTruco(prev => ({
-          ...prev,
-          canto: "retruco",
-          cantoNivel: 2,
-          quienCanto: "P2",
-          esperandoRespuesta: true,
-          turnoAntesDelCanto: prev.turno,
-          turno: "P1",
-        }));
-        return;
-      }
-
-      if (truco.canto === "retruco") {
-        setCantosLog(prev => [...prev, "Bot: Quiero Vale Cuatro"]);
-        setTruco(prev => ({
-          ...prev,
-          canto: "valecuatro",
-          cantoNivel: 3,
-          quienCanto: "P2",
-          esperandoRespuesta: true,
-          turnoAntesDelCanto: prev.turno,
-          turno: "P1",
-        }));
-        return;
-      }
+    let extraFuerte = false;
+    if (hands[1].length === 1 && hands[0].length === 1) {
+      const result = determineHandWinner(hands[1][0], hands[0][0]);
+      extraFuerte = result === "P2";
     }
-  }
 
-  // ------------------------------------------------------------
-  //  DESDE ACÁ SIGUE TU LÓGICA ORIGINAL
-  // ------------------------------------------------------------
-  if (truco.turno !== "P2") return;
+    // Base baja, pero si la última carta gana, subimos fuerte
+    let probVale4 = 0.15;
+    if (extraFuerte) probVale4 = 0.7; // BOT agresivo cuando sabe que gana la última
 
-  const total = table.length;
-  const ronda2 = Math.floor(total / 2);
-  const cardsInRound2 = total % 2;
-
-  // ... EL RESTO DE TU CÓDIGO SIGUE IGUAL ...
-
-
-  //-------------------------------------------------------------
-//  🧠 IA EXTRA: BOT DECIDE SUBIR A RETRUCO / VALE 4 EN LA ÚLTIMA
-//-------------------------------------------------------------
-if (
-  !truco.finished &&
-  !truco.esperandoRespuesta &&
-  truco.canto &&                       // ya hay truco/retruco/vale 4 en juego
-  hands[1].length === 1 &&             // bot tiene UNA carta
-  hands[0].length === 1 &&             // vos también UNA carta
-  truco.turno === "P2"                 // es el turno del bot
-) {
-  const cartaBot = hands[1][0];
-  const cartaTuya = hands[0][0];
-
-  const result = determineHandWinner(cartaBot, cartaTuya);
-
-  // ¿El bot gana seguro esta última?
-  const botGanaUltima = result === "P2";
-
-  if (botGanaUltima) {
-    // Probabilidad del 70% (Opción B)
-    const r = Math.random();
-    if (r < 0.7) {
-
-      // Decide qué canto corresponde según el nivel actual
-      if (truco.canto === "truco") {
-        setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
-        setTruco(prev => ({
-          ...prev,
-          canto: "retruco",
-          cantoNivel: 2,
-          quienCanto: "P2",
-          esperandoRespuesta: true,
-          turnoAntesDelCanto: prev.turno,
-          turno: "P1", // ahora vos respondés
-        }));
-        return; // NO juega la carta todavía
-      }
-
-      if (truco.canto === "retruco") {
-        setCantosLog(prev => [...prev, "Bot: Quiero Vale Cuatro"]);
-        setTruco(prev => ({
-          ...prev,
-          canto: "valecuatro",
-          cantoNivel: 3,
-          quienCanto: "P2",
-          esperandoRespuesta: true,
-          turnoAntesDelCanto: prev.turno,
-          turno: "P1",
-        }));
-        return;
-      }
-
-      // Si ya es vale cuatro no sube más
-    }
-  }
-}
-
-
-  // =====================================================
-  // 🟦 BOT CANTA TRUCO — PERMITIDO SOLO DESPUÉS DE QUE VOS
-  //    TIRASTE UNA CARTA (table.length > 0)
-  // =====================================================
-  if (
-    total > 0 &&            // vos ya tiraste
-    !truco.canto &&         // no hay canto previo
-    !truco.esperandoRespuesta
-  ) {
-    const evalBot = evaluateBotHand(hands[1]);
-
-    let prob =
-      evalBot.level === "muy_fuerte" ? 0.65 :
-      evalBot.level === "fuerte"     ? 0.35 :
-      evalBot.level === "media"      ? 0.12 :
-      0.03;
-
-    if (Math.random() < prob) {
-      setCantosLog(prev => [...prev, "Bot: Truco"]);
-
+    if (Math.random() < probVale4) {
+      setCantosLog(prev => [...prev, "Bot: Quiero Vale Cuatro"]);
       setTruco(prev => ({
         ...prev,
-        canto: "truco",
-        cantoNivel: 1,
+        canto: "valecuatro",
+        cantoNivel: 3,
         quienCanto: "P2",
         esperandoRespuesta: true,
-        turnoAntesDelCanto: prev.turno, // 🟦 guardamos quien debía jugar
-        turno: "P1"   // ahora respondés vos
+        turnoAntesDelCanto: prev.turno,
+        turno: "P1",
       }));
-
-      return; // ⛔ NO juega carta si cantó truco
+      return;
     }
   }
 
-  // =====================================================
-  // 🟧 SI NO CANTÓ TRUCO → JUEGA CARTA NORMAL
-  // =====================================================
+  // ================== SI NO CANTA: LÓGICA DE TIRAR CARTA ==================
+  if (!canBotAct) return;
+
+  const total2 = total;
+  const ronda2 = ronda;
+  const cardsInRound2 = cardsInRound;
 
   // RONDA 1
-  if (ronda === 0) {
-    if (cardsInRound === 1) {
+  if (ronda2 === 0) {
+    if (cardsInRound2 === 1) {
       setTimeout(() => opponentPlay(), 400);
     }
     return;
   }
 
   // RONDA 2
-  if (ronda === 1) {
+  if (ronda2 === 1) {
     const w1 = truco.winners[0];
 
-    if (w1 === "P2" && cardsInRound === 0) {
+    if (w1 === "P2" && cardsInRound2 === 0) {
       setTimeout(() => opponentPlay(), 400);
       return;
     }
 
-    if (cardsInRound === 1) {
+    if (cardsInRound2 === 1) {
       setTimeout(() => opponentPlay(), 400);
       return;
     }
@@ -525,30 +421,22 @@ if (
   }
 
   // RONDA 3
-  if (ronda === 2) {
+  if (ronda2 === 2) {
     const w1 = truco.winners[0];
     const w2 = truco.winners[1];
     const start = w2 === "Parda" ? w1 : w2;
 
-    if (start === "P2" && cardsInRound === 0) {
+    if (start === "P2" && cardsInRound2 === 0) {
       setTimeout(() => opponentPlay(), 400);
       return;
     }
 
-    if (cardsInRound === 1) {
+    if (cardsInRound2 === 1) {
       setTimeout(() => opponentPlay(), 400);
       return;
     }
   }
-}, [
-  truco.turno,
-  truco.finished,
-  truco.esperandoRespuesta,
-  truco.canto,
-  truco.winners,
-  table,
-  hands
-]);
+}, [truco.finished, truco.esperandoRespuesta, truco.turno, truco.canto, truco.winners, hands, table]);
 
 
   // ================== LÓGICA DE RONDAS ==================

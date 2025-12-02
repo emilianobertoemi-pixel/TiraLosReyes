@@ -270,12 +270,196 @@ export default function GameTable25D() {
   // ================== LÓGICA DEL BOT (cartas) ==================
 useEffect(() => {
   if (truco.finished) return;
-  if (truco.esperandoRespuesta) return; 
-  if (truco.turno !== "P2") return; // 🔥 solo piensa si ES SU TURNO
+  if (truco.esperandoRespuesta) return;
+
+  //-------------------------------------------------------------
+  // 🧠 IA RONDA 1 — BOT AGRESIVO CANTA TRUCO SI SU MANO ES FUERTE
+  //-------------------------------------------------------------
+  const ronda = Math.floor(table.length / 2);
+  const cardsInRound = table.length % 2;
+
+  if (
+    ronda === 0 &&
+    cardsInRound === 0 &&     // bot aún no tiró su primera carta
+    !truco.canto &&           // no hay truco en juego todavía
+    truco.quienCanto !== "P2" &&        // 🔥 el bot NO puede volver a cantar después de cantar él mismo
+    hands[1].length === 3
+  ) {
+    const evalBot = evaluateHand(hands[1]);
+
+    const prob =
+      evalBot.level === "muy_fuerte" ? 0.90 :
+      evalBot.level === "fuerte"     ? 0.70 :
+      evalBot.level === "media"      ? 0.25 :
+      0.05;
+
+    if (Math.random() < prob) {
+      setCantosLog(prev => [...prev, "Bot: Truco"]);
+      setTruco(prev => ({
+        ...prev,
+        canto: "truco",
+        cantoNivel: 1,
+        quienCanto: "P2",
+        esperandoRespuesta: true,
+        turnoAntesDelCanto: prev.turno,
+        turno: "P1",
+      }));
+      return;
+    }
+  }
+
+  //-------------------------------------------------------------
+  // 🧠 IA RONDA 2 — BOT SUBE A RETRUCO SI TIENE VENTAJA
+  //-------------------------------------------------------------
+  if (
+    ronda === 1 &&
+    !truco.esperandoRespuesta &&
+    truco.canto === "truco" &&
+    truco.quienCanto !== "P2" &&   // 🔥 si el BOT cantó truco, no puede cantar Re Truco
+    hands[1].length === 2
+  ) {
+    const evalBot = evaluateHand(hands[1]);
+    const botGanoR1 = truco.winners[0] === "P2";
+
+    const prob =
+      botGanoR1                      ? 0.85 :
+      evalBot.level === "muy_fuerte" ? 0.75 :
+      evalBot.level === "fuerte"     ? 0.55 :
+      evalBot.level === "media"      ? 0.25 :
+      0.05;
+
+    if (Math.random() < prob) {
+      setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
+      setTruco(prev => ({
+        ...prev,
+        canto: "retruco",
+        cantoNivel: 2,
+        quienCanto: "P2",
+        esperandoRespuesta: true,
+        turnoAntesDelCanto: prev.turno,
+        turno: "P1",
+      }));
+      return;
+    }
+  }
+
+  //-------------------------------------------------------------
+  // 🧠 IA RONDA 3 — BOT SUBE A VALE CUATRO SI LA ÚLTIMA LE GANA
+  //-------------------------------------------------------------
+  if (
+    truco.canto &&
+    truco.quienCanto !== "P2" &&    // 🔥 bot NO puede subir si el truco lo cantó él
+    !truco.esperandoRespuesta &&
+    hands[1].length === 1 &&
+    hands[0].length === 1
+  ) {
+    const cartaBot = hands[1][0];
+    const cartaTuya = hands[0][0];
+
+    const result = determineHandWinner(cartaBot, cartaTuya);
+    const botGanaUltima = result === "P2";
+
+    if (botGanaUltima && Math.random() < 0.70) {
+      if (truco.canto === "truco") {
+        setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
+        setTruco(prev => ({
+          ...prev,
+          canto: "retruco",
+          cantoNivel: 2,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1",
+        }));
+        return;
+      }
+
+      if (truco.canto === "retruco") {
+        setCantosLog(prev => [...prev, "Bot: Quiero Vale Cuatro"]);
+        setTruco(prev => ({
+          ...prev,
+          canto: "valecuatro",
+          cantoNivel: 3,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1",
+        }));
+        return;
+      }
+    }
+  }
+
+  // ------------------------------------------------------------
+  //  DESDE ACÁ SIGUE TU LÓGICA ORIGINAL
+  // ------------------------------------------------------------
+  if (truco.turno !== "P2") return;
 
   const total = table.length;
-  const ronda = Math.floor(total / 2);
-  const cardsInRound = total % 2;
+  const ronda2 = Math.floor(total / 2);
+  const cardsInRound2 = total % 2;
+
+  // ... EL RESTO DE TU CÓDIGO SIGUE IGUAL ...
+
+
+  //-------------------------------------------------------------
+//  🧠 IA EXTRA: BOT DECIDE SUBIR A RETRUCO / VALE 4 EN LA ÚLTIMA
+//-------------------------------------------------------------
+if (
+  !truco.finished &&
+  !truco.esperandoRespuesta &&
+  truco.canto &&                       // ya hay truco/retruco/vale 4 en juego
+  hands[1].length === 1 &&             // bot tiene UNA carta
+  hands[0].length === 1 &&             // vos también UNA carta
+  truco.turno === "P2"                 // es el turno del bot
+) {
+  const cartaBot = hands[1][0];
+  const cartaTuya = hands[0][0];
+
+  const result = determineHandWinner(cartaBot, cartaTuya);
+
+  // ¿El bot gana seguro esta última?
+  const botGanaUltima = result === "P2";
+
+  if (botGanaUltima) {
+    // Probabilidad del 70% (Opción B)
+    const r = Math.random();
+    if (r < 0.7) {
+
+      // Decide qué canto corresponde según el nivel actual
+      if (truco.canto === "truco") {
+        setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
+        setTruco(prev => ({
+          ...prev,
+          canto: "retruco",
+          cantoNivel: 2,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1", // ahora vos respondés
+        }));
+        return; // NO juega la carta todavía
+      }
+
+      if (truco.canto === "retruco") {
+        setCantosLog(prev => [...prev, "Bot: Quiero Vale Cuatro"]);
+        setTruco(prev => ({
+          ...prev,
+          canto: "valecuatro",
+          cantoNivel: 3,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1",
+        }));
+        return;
+      }
+
+      // Si ya es vale cuatro no sube más
+    }
+  }
+}
+
 
   // =====================================================
   // 🟦 BOT CANTA TRUCO — PERMITIDO SOLO DESPUÉS DE QUE VOS
@@ -676,7 +860,7 @@ useEffect(() => {
             setTruco((prev) => ({
               ...prev,
               esperandoRespuesta: false,
-              turno: "P1",
+              turno: prev.turnoAntesDelCanto,
             }));
           }}
         >

@@ -66,21 +66,50 @@ export default function GameTable25D() {
 
   // Mensajes de cantos en pantalla
   const [cantosLog, setCantosLog] = useState([]);
+    const [isDealing, setIsDealing] = useState(false);   // ¿Se está repartiendo?
+  const [dealQueue, setDealQueue] = useState([]);      // Cola de cartas a repartir
+  const [dealIndex, setDealIndex] = useState(0);       // Posición actual en la cola
+  const [showPlayerCards, setShowPlayerCards] = useState(false); // ¿J1 ve sus cartas?
+
 
   // ====================== REPARTIR ======================
-  const deal = () => {
-    const d = [...shuffle(generateDeck())];
-    const newHands = [[], []];
+  // Animación de reparto: reparte una carta cada 300ms
+  useEffect(() => {
+    if (!isDealing) return;
+    if (!dealQueue || dealQueue.length === 0) return;
 
-    for (let i = 0; i < 3; i++) {
-      newHands[0].push(d.pop());
-      newHands[1].push(d.pop());
+    if (dealIndex >= dealQueue.length) {
+      // Terminó de repartir
+      setIsDealing(false);
+      return;
     }
 
-    setHands(newHands);
-    setDeck(d);
+    const timer = setTimeout(() => {
+      const nextItem = dealQueue[dealIndex];
+
+      setHands((prevHands) => {
+        const newHands = prevHands.map((h) => [...h]);
+        newHands[nextItem.playerIndex].push(nextItem.card);
+        return newHands;
+      });
+
+      setDealIndex((prev) => prev + 1);
+    }, 300); // tiempo entre cartas
+
+    return () => clearTimeout(timer);
+  }, [isDealing, dealIndex, dealQueue]);
+
+
+
+    const deal = () => {
+    // Generamos y mezclamos un mazo nuevo
+    const d = [...shuffle(generateDeck())];
+
+    // Preparamos manos vacías
+    setHands([[], []]);
     setTable([]);
 
+    // Reset de estado de truco
     setTruco({
       mano: "P1",
       turno: "P1",
@@ -91,15 +120,33 @@ export default function GameTable25D() {
       cantoNivel: 0,
       quienCanto: null,
       esperandoRespuesta: false,
+      turnoAntesDelCanto: null,
     });
 
     setCantosLog([]);
+    setShowPlayerCards(false);  // Al repartir, tus cartas arrancan tapadas
+
+    // Creamos la cola de reparto: J1, BT, J1, BT, J1, BT
+    const sequence = [];
+    for (let i = 0; i < 3; i++) {
+      const cardP1 = d.pop();
+      const cardP2 = d.pop();
+      sequence.push({ playerIndex: 0, card: cardP1 });
+      sequence.push({ playerIndex: 1, card: cardP2 });
+    }
+
+    setDeck(d);
+    setDealQueue(sequence);
+    setDealIndex(0);
+    setIsDealing(true); // Comienza animación de reparto
   };
+
 
   // ================== JUGAR CARTA — J1 ==================
   const playCard = (playerIndex, cardIndex) => {
     if (truco.finished) return;
     if (truco.esperandoRespuesta) return;
+    if (isDealing) return;                    // 🔥 no se puede jugar mientras se reparte
     if (playerIndex === 0 && truco.turno !== "P1") return;
 
     const carta = hands[playerIndex][cardIndex];
@@ -120,6 +167,7 @@ export default function GameTable25D() {
   const opponentPlay = () => {
     if (truco.finished) return;
     if (truco.esperandoRespuesta) return;
+    if (isDealing) return;                    // 🔥 no juega el bot mientras reparte
     if (truco.turno !== "P2") return;
 
     setHands((prevHands) => {
@@ -550,41 +598,44 @@ useEffect(() => {
       }}
     >
       <AnotadorTruco puntosP1={pointsP1} puntosP2={pointsP2} />
+      {/* CANTOS — cartelitos ubicados entre el anotador y las cartas */}
+<div
+  style={{
+    position: "absolute",
+    top: "50%",
+    left: "360px",        // ⇐ posición exacta que marcaste en tu imagen
+    transform: "translateY(-50%)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    alignItems: "flex-start",
+    zIndex: 3000,
+    pointerEvents: "none", // no bloquea clicks sobre cartas
+  }}
+>
+  {cantosLog.slice(-4).map((msg, i) => (
+    <div
+      key={i}
+      style={{
+        padding: "6px 12px",
+        borderRadius: "8px",
+        background: "rgba(0,0,0,0.75)",
+        color: "#fff",
+        fontSize: "14px",
+        border: "1px solid rgba(255,255,255,0.4)",
+        textShadow: "0 1px 2px rgba(0,0,0,0.9)",
+        whiteSpace: "pre-line",
+      }}
+    >
+      {msg}
+    </div>
+  ))}
+</div>
+
 
       {/* CARTAS EN LA MESA */}
       <div className="mesa25d-center">
-        {/* Mensajes de canto arriba a la derecha */}
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            alignItems: "flex-end",
-            zIndex: 999,
-          }}
-        >
-          {cantosLog.slice(-4).map((msg, i) => (
-            <div
-              key={i}
-              style={{
-                padding: "6px 12px",
-                borderRadius: "8px",
-                background: "rgba(0,0,0,0.75)",
-                color: "#fff",
-                fontSize: "14px",
-                border: "1px solid rgba(255,255,255,0.4)",
-                textShadow: "0 1px 2px rgba(0,0,0,0.9)",
-              }}
-            >
-              {msg}
-            </div>
-          ))}
-        </div>
-
-        {table.map((t, i) => (
+      {table.map((t, i) => (
           <Card
             key={i}
             img={t.card.img}
@@ -593,7 +644,8 @@ useEffect(() => {
               position: "absolute",
               top: "-20px",
               left: `${i * 40}px`,
-              transform: "translate(-50%, -50%)",
+              transform: "translate(-50%, -50%) scale(1.5)",
+
               zIndex: 50 + i,
             }}
           />
@@ -632,13 +684,16 @@ useEffect(() => {
           <Card
             key={card.id}
             img={card.img}
-            faceUp={true}
+                        faceUp={showPlayerCards}
+
             onClick={() => playCard(0, i)}
             style={{
-              position: "relative",
-              transform: `rotate(${(i - 1) * 12}deg)`,
-              zIndex: 50 + i,
-            }}
+  position: "relative",
+  transform: `scale(1.5) rotate(${(i - 1) * 12}deg)`,
+  zIndex: 50 + i,
+}}
+
+            
           />
         ))}
       </div>
@@ -799,9 +854,22 @@ useEffect(() => {
           }}
         />
 
-        <button className="system-btn" onClick={deal}>
+       <button
+          className="system-btn"
+          onClick={deal}
+          disabled={isDealing}
+        >
           Repartir
         </button>
+
+        <button
+          className="system-btn"
+          onClick={() => setShowPlayerCards(true)}
+          disabled={isDealing || showPlayerCards || hands[0].length === 0}
+        >
+          Ver mis cartas
+        </button>
+
         <button className="system-btn" onClick={() => navigate(-1)}>
           Volver
         </button>

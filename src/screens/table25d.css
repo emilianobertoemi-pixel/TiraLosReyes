@@ -68,11 +68,11 @@
 
 .side-menu-25d {
   position: absolute;
-  right: 30px;
- top: 150px;
+  right: 20px;
+ top: 40px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .action-btn {

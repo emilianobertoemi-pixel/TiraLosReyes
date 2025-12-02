@@ -4,22 +4,32 @@
   border-radius: 8px;
   user-select: none;
   cursor: pointer;
+
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 0.2s ease;
 }
 
+/* Frente de carta */
+.card.face-up {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75);
+}
 
+/* Dorso */
 .face-down {
   background: #222;
   color: white;
 }
 
+/* Número */
 .card-rank {
   font-size: 20px;
 }
 
+/* Animación de cartas volando (para repartir) */
 .card-animate {
   position: absolute;
-  width: 80px;   /* antes 60 */
-  height: 120px; /* antes 90 */
+  width: 80px;   
+  height: 120px; 
   background: white;
   border: 2px solid #333;
   border-radius: 8px;
@@ -28,24 +38,17 @@
   justify-content: center;
   font-weight: bold;
 
-  transition: all 0.5s ease-out, transform 0.5s ease-out;
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.7) rotate(0deg);
-}
-
-
-.card-animate.card-in-hand {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1) rotate(var(--rotate, 0deg));
-}
-/* ✨ Animación de giro durante el vuelo */
-.card-animate {
   transition: all 0.5s ease-out, transform 0.5s ease-out;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
 }
 
 .card-animate.fly {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.2) rotate(360deg);
+}
+
+.card-animate.card-in-hand {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(var(--rotate, 0deg));
 }

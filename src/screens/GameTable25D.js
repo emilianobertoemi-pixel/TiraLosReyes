@@ -10,106 +10,87 @@ import { evaluateHand } from "../gameLogic/truco/evaluateHand";
 
 // Evalúa la fuerza de la mano del BOT
 function evaluateBotHand(hand) {
-  if (!hand || hand.length === 0) {
-    return { level: "mala" };
-  }
+  if (!hand || hand.length === 0) return { level: "mala" };
 
-  const ranks = hand.map(c => c.rank);
-  const hasAnchoEspada = hand.some(c => c.suit === "espada" && c.rank === 1);
-  const hasAnchoBasto  = hand.some(c => c.suit === "basto" && c.rank === 1);
-  const hasSieteEspada = hand.some(c => c.suit === "espada" && c.rank === 7);
-  const hasSieteOro    = hand.some(c => c.suit === "oro" && c.rank === 7);
+  const ranks = hand.map((c) => c.rank);
+  const hasAnchoEspada = hand.some((c) => c.suit === "espada" && c.rank === 1);
+  const hasAnchoBasto = hand.some((c) => c.suit === "basto" && c.rank === 1);
+  const hasSieteEspada = hand.some((c) => c.suit === "espada" && c.rank === 7);
+  const hasSieteOro = hand.some((c) => c.suit === "oro" && c.rank === 7);
 
-  if (hasAnchoEspada || (hasAnchoBasto && (hasSieteEspada || hasSieteOro))) {
+  if (hasAnchoEspada || (hasAnchoBasto && (hasSieteEspada || hasSieteOro)))
     return { level: "muy_fuerte" };
-  }
 
-  if (hasAnchoBasto || hasSieteEspada || hasSieteOro) {
+  if (hasAnchoBasto || hasSieteEspada || hasSieteOro)
     return { level: "fuerte" };
-  }
 
-  const fuertes = ranks.filter(r => r === 3 || r === 2 || r === 12 || r === 11 || r === 10);
-  if (fuertes.length >= 2) {
-    return { level: "media" };
-  }
+  const fuertes = ranks.filter(
+    (r) => r === 3 || r === 2 || r === 12 || r === 11 || r === 10
+  );
+
+  if (fuertes.length >= 2) return { level: "media" };
 
   return { level: "mala" };
 }
 
-
-
 export default function GameTable25D() {
   const navigate = useNavigate();
 
-  // ================= ESTADO GENERAL =================
+  // ================= ESTADOS =================
   const [deck, setDeck] = useState(() => shuffle(generateDeck()));
-  const [hands, setHands] = useState([[], []]); // [J1, J2]
-  const [table, setTable] = useState([]);       // cartas jugadas en orden
+  const [hands, setHands] = useState([[], []]);
+  const [table, setTable] = useState([]);
 
   const [truco, setTruco] = useState({
     mano: "P1",
     turno: "P1",
-    winners: [null, null, null], // ganadores de cada ronda
+    winners: [null, null, null],
     finished: false,
     ganadorPartida: null,
-
-    // CANTOS
-    canto: null,          // "truco" | "retruco" | "valecuatro" | null
-    cantoNivel: 0,        // 0=sin canto, 1=truco, 2=retruco, 3=vale cuatro
-    quienCanto: null,     // "P1" o "P2"
+    canto: null,
+    cantoNivel: 0,
+    quienCanto: null,
     esperandoRespuesta: false,
-    turnoAntesDelCanto: null
+    turnoAntesDelCanto: null,
   });
 
   const [pointsP1, setPointsP1] = useState(0);
   const [pointsP2, setPointsP2] = useState(0);
 
-  // Mensajes de cantos en pantalla
   const [cantosLog, setCantosLog] = useState([]);
-    const [isDealing, setIsDealing] = useState(false);   // ¿Se está repartiendo?
-  const [dealQueue, setDealQueue] = useState([]);      // Cola de cartas a repartir
-  const [dealIndex, setDealIndex] = useState(0);       // Posición actual en la cola
-  const [showPlayerCards, setShowPlayerCards] = useState(false); // ¿J1 ve sus cartas?
 
+  // Reparto animado
+  const [isDealing, setIsDealing] = useState(false);
+  const [dealQueue, setDealQueue] = useState([]);
+  const [dealIndex, setDealIndex] = useState(0);
+  const [showPlayerCards, setShowPlayerCards] = useState(false);
 
-  // ====================== REPARTIR ======================
-  // Animación de reparto: reparte una carta cada 300ms
+  // ====================== REPARTIR (ANIMADO) ======================
   useEffect(() => {
-    if (!isDealing) return;
-    if (!dealQueue || dealQueue.length === 0) return;
-
-    if (dealIndex >= dealQueue.length) {
-      // Terminó de repartir
+    if (!isDealing || dealIndex >= dealQueue.length) {
       setIsDealing(false);
       return;
     }
 
     const timer = setTimeout(() => {
-      const nextItem = dealQueue[dealIndex];
-
-      setHands((prevHands) => {
-        const newHands = prevHands.map((h) => [...h]);
-        newHands[nextItem.playerIndex].push(nextItem.card);
+      const next = dealQueue[dealIndex];
+      setHands((prev) => {
+        const newHands = prev.map((h) => [...h]);
+        newHands[next.playerIndex].push(next.card);
         return newHands;
       });
-
-      setDealIndex((prev) => prev + 1);
-    }, 300); // tiempo entre cartas
+      setDealIndex((i) => i + 1);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [isDealing, dealIndex, dealQueue]);
 
-
-
-    const deal = () => {
-    // Generamos y mezclamos un mazo nuevo
+  const deal = () => {
     const d = [...shuffle(generateDeck())];
 
-    // Preparamos manos vacías
     setHands([[], []]);
     setTable([]);
 
-    // Reset de estado de truco
     setTruco({
       mano: "P1",
       turno: "P1",
@@ -124,29 +105,25 @@ export default function GameTable25D() {
     });
 
     setCantosLog([]);
-    setShowPlayerCards(false);  // Al repartir, tus cartas arrancan tapadas
+    setShowPlayerCards(false);
 
-    // Creamos la cola de reparto: J1, BT, J1, BT, J1, BT
-    const sequence = [];
+    const seq = [];
     for (let i = 0; i < 3; i++) {
-      const cardP1 = d.pop();
-      const cardP2 = d.pop();
-      sequence.push({ playerIndex: 0, card: cardP1 });
-      sequence.push({ playerIndex: 1, card: cardP2 });
+      seq.push({ playerIndex: 0, card: d.pop() });
+      seq.push({ playerIndex: 1, card: d.pop() });
     }
 
     setDeck(d);
-    setDealQueue(sequence);
+    setDealQueue(seq);
     setDealIndex(0);
-    setIsDealing(true); // Comienza animación de reparto
+    setIsDealing(true);
   };
-
 
   // ================== JUGAR CARTA — J1 ==================
   const playCard = (playerIndex, cardIndex) => {
     if (truco.finished) return;
     if (truco.esperandoRespuesta) return;
-    if (isDealing) return;                    // 🔥 no se puede jugar mientras se reparte
+    if (isDealing) return;
     if (playerIndex === 0 && truco.turno !== "P1") return;
 
     const carta = hands[playerIndex][cardIndex];
@@ -157,141 +134,121 @@ export default function GameTable25D() {
     );
 
     setHands(newHands);
-
     setTable((prev) => [...prev, { from: playerIndex, card: carta }]);
 
     setTruco((prev) => ({ ...prev, turno: "P2" }));
   };
 
-  // ================== JUGAR CARTA — J2 ==================
+  // ================== JUGAR CARTA — BOT ==================
   const opponentPlay = () => {
     if (truco.finished) return;
     if (truco.esperandoRespuesta) return;
-    if (isDealing) return;                    // 🔥 no juega el bot mientras reparte
+    if (isDealing) return;
     if (truco.turno !== "P2") return;
 
-    setHands((prevHands) => {
-      const rival = prevHands[1];
-      if (!rival || rival.length === 0) return prevHands;
+    setHands((prev) => {
+      const bot = prev[1];
+      if (!bot.length) return prev;
 
-      const card = rival[0];
-      const updated = [prevHands[0], rival.slice(1)];
+      const card = bot[0];
+      const updated = [prev[0], bot.slice(1)];
 
-      setTable((prev) => [...prev, { from: 1, card }]);
-
-      setTruco((prev) => ({ ...prev, turno: "P1" }));
+      setTable((prevT) => [...prevT, { from: 1, card }]);
+      setTruco((prevT) => ({ ...prevT, turno: "P1" }));
 
       return updated;
     });
   };
 
-  // ================== BOT RESPONDE CANTO (IA) ==================
+  // ================== BOT RESPONDE CANTO ==================
   const responderCantoBot = () => {
     if (!truco.esperandoRespuesta || truco.finished) return;
 
     const manoBot = hands[1] || [];
-    const handEval = evaluateHand(manoBot);
+    const evalBot = evaluateHand(manoBot);
     const nivel = truco.cantoNivel || 1;
 
     let probAceptar = 0.5;
     let probSubir = 0;
 
-    // Ajustamos probabilidades según fuerza de mano y nivel del canto
     if (nivel === 1) {
-      // Truco
-      if (handEval.level === "muy_fuerte") {
+      if (evalBot.level === "muy_fuerte") {
         probAceptar = 0.95;
         probSubir = 0.45;
-      } else if (handEval.level === "fuerte") {
+      } else if (evalBot.level === "fuerte") {
         probAceptar = 0.85;
         probSubir = 0.25;
-      } else if (handEval.level === "media") {
+      } else if (evalBot.level === "media") {
         probAceptar = 0.6;
         probSubir = 0.05;
-      } else {
-        probAceptar = 0.35;
-        probSubir = 0;
-      }
-    } else if (nivel === 2) {
-      // Re Truco
-      if (handEval.level === "muy_fuerte") {
-        probAceptar = 0.9;
-        probSubir = 0.3;
-      } else if (handEval.level === "fuerte") {
-        probAceptar = 0.75;
-        probSubir = 0.1;
-      } else if (handEval.level === "media") {
-        probAceptar = 0.5;
-        probSubir = 0;
-      } else {
-        probAceptar = 0.25;
-        probSubir = 0;
-      }
-    } else {
-      // Vale Cuatro – no puede subir más
-      if (handEval.level === "muy_fuerte") probAceptar = 0.8;
-      else if (handEval.level === "fuerte") probAceptar = 0.6;
-      else if (handEval.level === "media") probAceptar = 0.4;
-      else probAceptar = 0.2;
-      probSubir = 0;
+      } else probAceptar = 0.35;
+    }
+
+    if (nivel === 2) {
+      if (evalBot.level === "muy_fuerte") probAceptar = 0.9;
+      else if (evalBot.level === "fuerte") probAceptar = 0.75;
+      else if (evalBot.level === "media") probAceptar = 0.5;
+      else probAceptar = 0.25;
+
+      probSubir = evalBot.level === "muy_fuerte" ? 0.3 : 0.1;
     }
 
     const r = Math.random();
     const puedeSubir = nivel < 3;
 
-    // ¿Sube la apuesta?
+    // SUBIR
     if (puedeSubir && r < probSubir) {
       const nextNivel = nivel + 1;
-      const nextCanto = nextNivel === 2 ? "retruco" : "valecuatro";
-      const texto =
-        nextCanto === "retruco"
-          ? "Bot: Quiero Re Truco"
-          : "Bot: Quiero Vale Cuatro";
+      const canto =
+        nextNivel === 2 ? "retruco" : "valecuatro";
 
-      setCantosLog((prev) => [...prev, texto]);
+      setCantosLog((prev) => [
+        ...prev,
+        nextNivel === 2
+          ? "Bot: Quiero Re Truco"
+          : "Bot: Quiero Vale Cuatro",
+      ]);
 
       setTruco((prev) => ({
         ...prev,
-        canto: nextCanto,
+        canto,
         cantoNivel: nextNivel,
-        esperandoRespuesta: true,
-        turnoAntesDelCanto: prev.turno, // 🟦 guardamos quien debía jugar
         quienCanto: "P2",
+        esperandoRespuesta: true,
+        turnoAntesDelCanto: prev.turno,
         turno: "P1",
       }));
-
       return;
     }
 
-    // ¿Acepta sin subir?
+    // QUIERE
     if (r < probAceptar) {
-      const texto =
+      setCantosLog((prev) => [
+        ...prev,
         nivel === 1
           ? "Bot: Quiero al Truco"
           : nivel === 2
           ? "Bot: Quiero al Re Truco"
-          : "Bot: Quiero al Vale Cuatro";
-
-      setCantosLog((prev) => [...prev, texto]);
+          : "Bot: Quiero al Vale Cuatro",
+      ]);
 
       setTruco((prev) => ({
         ...prev,
         esperandoRespuesta: false,
         turno: "P1",
       }));
-
       return;
     }
 
     // NO QUIERE
-    const textoNo =
+    setCantosLog((prev) => [
+      ...prev,
       nivel === 1
         ? "Bot: No quiero al Truco"
         : nivel === 2
         ? "Bot: No quiero al Re Truco"
-        : "Bot: No quiero al Vale Cuatro";
-
-    setCantosLog((prev) => [...prev, textoNo]);
+        : "Bot: No quiero al Vale Cuatro",
+    ]);
 
     const puntos = nivel === 1 ? 1 : nivel === 2 ? 2 : 3;
     setPointsP1((p) => p + puntos);
@@ -305,227 +262,218 @@ export default function GameTable25D() {
     }));
   };
 
-  // BOT responde a los cantos (con delay)
   useEffect(() => {
-    if (!truco.esperandoRespuesta) return;
-    if (truco.turno !== "P2") return;
-    if (truco.finished) return;
-
-    const timer = setTimeout(() => responderCantoBot(), 800);
-    return () => clearTimeout(timer);
-  }, [truco.esperandoRespuesta, truco.turno, truco.finished, hands]);
-
-  // ================== LÓGICA DEL BOT (cartas + cantos) ==================
-useEffect(() => {
-  if (truco.finished) return;
-  if (truco.esperandoRespuesta) return;
-
-  const total = table.length;
-  const ronda = Math.floor(total / 2);   // 0,1,2
-  const cardsInRound = total % 2;        // 0 o 1
-  const canBotAct = truco.turno === "P2";
-
-  const manoBot = hands[1] || [];
-
-  // ================== IA: INICIAR TRUCO (BOT AGRESIVO) ==================
-  // Bot puede cantar Truco SOLO si:
-  // - ya hubo al menos una acción (total > 0),
-  // - no hay truco todavía,
-  // - es su turno (canBotAct).
-  if (!truco.canto && canBotAct && total > 0 && manoBot.length === 3) {
-    const evalBot = evaluateHand(manoBot);
-
-    let probTruco =
-      evalBot.level === "muy_fuerte" ? 0.9 :
-      evalBot.level === "fuerte"     ? 0.7 :
-      evalBot.level === "media"      ? 0.25 :
-                                       0.05;
-
-    if (Math.random() < probTruco) {
-      setCantosLog(prev => [...prev, "Bot: Truco"]);
-      setTruco(prev => ({
-        ...prev,
-        canto: "truco",
-        cantoNivel: 1,
-        quienCanto: "P2",
-        esperandoRespuesta: true,
-        turnoAntesDelCanto: prev.turno,
-        turno: "P1", // ahora respondés vos
-      }));
-      return; // no tira carta hasta que respondas
+    if (truco.esperandoRespuesta && truco.turno === "P2") {
+      const t = setTimeout(() => responderCantoBot(), 800);
+      return () => clearTimeout(t);
     }
-  }
+  }, [truco.esperandoRespuesta, truco.turno]);
 
-  // ================== IA: SUBIR A RETRUCO ==================
-  // Solo puede subir si:
-  // - ya hay Truco,
-  // - el último que cantó NO fue el bot (truco.quienCanto !== "P2"),
-  // - es su turno.
+  // ================== IA BOT: CANTOS + TIRAR ==================
+  useEffect(() => {
+    if (truco.finished || truco.esperandoRespuesta) return;
+
+    // ================= BOT: Me voy al mazo (rendición automática) ==================
+if (!truco.finished && !truco.esperandoRespuesta && truco.turno === "P2") {
+
+  const evalBot = evaluateHand(hands[1]);
+
+  // Condiciones:
+  // - mano muy mala
+  // - perdió la primera ronda
+  // - tiene al menos 2 cartas aún
+  const perdioR1 = truco.winners[0] === "P1";
+
   if (
-    truco.canto === "truco" &&
-    truco.quienCanto !== "P2" &&
-    canBotAct &&
-    manoBot.length >= 2
+    evalBot.level === "mala" &&
+    perdioR1 &&
+    hands[1].length >= 2
   ) {
-    const evalBot = evaluateHand(manoBot);
-    const botGanoR1 = truco.winners[0] === "P2";
-
-    // Si está en la última carta y esa última le gana, subimos fuerte
-    let extraFuerte = false;
-    if (hands[1].length === 1 && hands[0].length === 1) {
-      const result = determineHandWinner(hands[1][0], hands[0][0]);
-      extraFuerte = result === "P2";
-    }
-
-    let probReTruco =
-      evalBot.level === "muy_fuerte" ? 0.7 :
-      evalBot.level === "fuerte"     ? 0.5 :
-      evalBot.level === "media"      ? 0.25 :
-                                       0.05;
-
-    if (botGanoR1) probReTruco = Math.min(probReTruco + 0.15, 0.9);
-    if (extraFuerte) probReTruco = 0.7;
-
-    if (Math.random() < probReTruco) {
-      setCantosLog(prev => [...prev, "Bot: Quiero Re Truco"]);
+    // probabilidad de rendirse
+    if (Math.random() < 0.05) {   // 5%
+      setCantosLog(prev => [...prev, "Bot: Me voy al mazo"]);
+      setPointsP1(p => p + 1);   // vos ganás 1 punto
       setTruco(prev => ({
         ...prev,
-        canto: "retruco",
-        cantoNivel: 2,
-        quienCanto: "P2",
-        esperandoRespuesta: true,
-        turnoAntesDelCanto: prev.turno,
-        turno: "P1",
+        finished: true,
+        ganadorPartida: "P1",
+        turno: null,
       }));
-      return;
+      return;  // 👈 importantísimo
     }
   }
+}
 
-  // ================== IA: SUBIR A VALE CUATRO ==================
-  // Solo si:
-  // - ya hay ReTruco,
-  // - el último que cantó NO fue el bot,
-  // - es su turno.
-  if (
-    truco.canto === "retruco" &&
-    truco.quienCanto !== "P2" &&
-    canBotAct
-  ) {
-    let extraFuerte = false;
-    if (hands[1].length === 1 && hands[0].length === 1) {
-      const result = determineHandWinner(hands[1][0], hands[0][0]);
-      extraFuerte = result === "P2";
+
+    const total = table.length;
+    const ronda = Math.floor(total / 2);
+    const cardsInRound = total % 2;
+    const canBotAct = truco.turno === "P2";
+    const manoBot = hands[1];
+
+    // BOT inicia TRUCO SOLO si J1 ya hizo una acción
+    if (!truco.canto && canBotAct && total > 0 && manoBot.length === 3) {
+      const evalBot = evaluateHand(manoBot);
+
+      let prob =
+        evalBot.level === "muy_fuerte"
+          ? 0.9
+          : evalBot.level === "fuerte"
+          ? 0.7
+          : evalBot.level === "media"
+          ? 0.25
+          : 0.05;
+
+      if (Math.random() < prob) {
+        setCantosLog((prev) => [...prev, "Bot: Truco"]);
+        setTruco((prev) => ({
+          ...prev,
+          canto: "truco",
+          cantoNivel: 1,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1",
+        }));
+        return;
+      }
     }
 
-    // Base baja, pero si la última carta gana, subimos fuerte
-    let probVale4 = 0.15;
-    if (extraFuerte) probVale4 = 0.7; // BOT agresivo cuando sabe que gana la última
+    // SUBIR A RETRUCO
+    if (
+      truco.canto === "truco" &&
+      truco.quienCanto !== "P2" &&
+      canBotAct &&
+      manoBot.length >= 2
+    ) {
+      const evalBot = evaluateHand(manoBot);
+      const botGanoR1 = truco.winners[0] === "P2";
 
-    if (Math.random() < probVale4) {
-      setCantosLog(prev => [...prev, "Bot: Quiero Vale Cuatro"]);
-      setTruco(prev => ({
-        ...prev,
-        canto: "valecuatro",
-        cantoNivel: 3,
-        quienCanto: "P2",
-        esperandoRespuesta: true,
-        turnoAntesDelCanto: prev.turno,
-        turno: "P1",
-      }));
+      let prob =
+        evalBot.level === "muy_fuerte"
+          ? 0.7
+          : evalBot.level === "fuerte"
+          ? 0.5
+          : evalBot.level === "media"
+          ? 0.25
+          : 0.05;
+
+      if (botGanoR1) prob += 0.15;
+
+      if (Math.random() < prob) {
+        setCantosLog((prev) => [...prev, "Bot: Quiero Re Truco"]);
+        setTruco((prev) => ({
+          ...prev,
+          canto: "retruco",
+          cantoNivel: 2,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1",
+        }));
+        return;
+      }
+    }
+
+    // SUBIR A VALE CUATRO
+    if (
+      truco.canto === "retruco" &&
+      truco.quienCanto !== "P2" &&
+      canBotAct
+    ) {
+      let extra = false;
+
+      if (hands[1].length === 1 && hands[0].length === 1) {
+        extra =
+          determineHandWinner(hands[1][0], hands[0][0]) === "P2";
+      }
+
+      const prob = extra ? 0.7 : 0.15;
+
+      if (Math.random() < prob) {
+        setCantosLog((prev) => [...prev, "Bot: Quiero Vale Cuatro"]);
+        setTruco((prev) => ({
+          ...prev,
+          canto: "valecuatro",
+          cantoNivel: 3,
+          quienCanto: "P2",
+          esperandoRespuesta: true,
+          turnoAntesDelCanto: prev.turno,
+          turno: "P1",
+        }));
+        return;
+      }
+    }
+
+    // SI NO CANTA, TIRA CARTA
+    if (!canBotAct) return;
+
+    if (ronda === 0) {
+      if (cardsInRound === 1) setTimeout(() => opponentPlay(), 400);
       return;
     }
-  }
 
-  // ================== SI NO CANTA: LÓGICA DE TIRAR CARTA ==================
-  if (!canBotAct) return;
+    if (ronda === 1) {
+      const w1 = truco.winners[0];
 
-  const total2 = total;
-  const ronda2 = ronda;
-  const cardsInRound2 = cardsInRound;
-
-  // RONDA 1
-  if (ronda2 === 0) {
-    if (cardsInRound2 === 1) {
-      setTimeout(() => opponentPlay(), 400);
-    }
-    return;
-  }
-
-  // RONDA 2
-  if (ronda2 === 1) {
-    const w1 = truco.winners[0];
-
-    if (w1 === "P2" && cardsInRound2 === 0) {
-      setTimeout(() => opponentPlay(), 400);
+      if (w1 === "P2" && cardsInRound === 0) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
+      if (cardsInRound === 1) {
+        setTimeout(() => opponentPlay(), 400);
+      }
       return;
     }
 
-    if (cardsInRound2 === 1) {
-      setTimeout(() => opponentPlay(), 400);
-      return;
+    if (ronda === 2) {
+      const w1 = truco.winners[0];
+      const w2 = truco.winners[1];
+      const start = w2 === "Parda" ? w1 : w2;
+
+      if (start === "P2" && cardsInRound === 0) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
+      if (cardsInRound === 1) {
+        setTimeout(() => opponentPlay(), 400);
+        return;
+      }
     }
-
-    return;
-  }
-
-  // RONDA 3
-  if (ronda2 === 2) {
-    const w1 = truco.winners[0];
-    const w2 = truco.winners[1];
-    const start = w2 === "Parda" ? w1 : w2;
-
-    if (start === "P2" && cardsInRound2 === 0) {
-      setTimeout(() => opponentPlay(), 400);
-      return;
-    }
-
-    if (cardsInRound2 === 1) {
-      setTimeout(() => opponentPlay(), 400);
-      return;
-    }
-  }
-}, [truco.finished, truco.esperandoRespuesta, truco.turno, truco.canto, truco.winners, hands, table]);
-
+  }, [truco, hands, table]);
 
   // ================== LÓGICA DE RONDAS ==================
   useEffect(() => {
-    if (truco.finished) return;
-    if (table.length === 0) return;
+    if (truco.finished || table.length === 0) return;
     if (table.length % 2 !== 0) return;
 
-    const roundIndex = table.length / 2 - 1;
-    if (roundIndex < 0 || roundIndex > 2) return;
+    const index = table.length / 2 - 1;
+    if (index < 0 || index > 2) return;
+    if (truco.winners[index]) return;
 
-    if (truco.winners[roundIndex]) return;
-
-    const start = roundIndex * 2;
-    const c1 = table[start];
-    const c2 = table[start + 1];
-
-    const resultado = determineHandWinner(c1.card, c2.card);
-    let ganador;
-
-    if (resultado === "Parda") ganador = "Parda";
-    else if (resultado === "P1") ganador = c1.from === 0 ? "P1" : "P2";
-    else ganador = c2.from === 0 ? "P1" : "P2";
+    const c1 = table[index * 2];
+    const c2 = table[index * 2 + 1];
+    const result = determineHandWinner(c1.card, c2.card);
 
     setTruco((prev) => {
       const state = { ...prev, winners: [...prev.winners] };
+      let ganador;
 
-      state.winners[roundIndex] = ganador;
+      if (result === "Parda") ganador = "Parda";
+      else ganador = result;
+
+      state.winners[index] = ganador;
 
       const mano = state.mano;
       const first = state.winners[0];
       const second = state.winners[1];
 
-      // ========= RONDA 1 =========
-      if (roundIndex === 0) {
+      if (index === 0) {
         state.turno = ganador === "Parda" ? mano : ganador;
         return state;
       }
 
-      // ========= RONDA 2 =========
-      if (roundIndex === 1) {
+      if (index === 1) {
         if (ganador === "Parda") {
           if (first === "P1" || first === "P2") {
             state.finished = true;
@@ -555,8 +503,7 @@ useEffect(() => {
         return state;
       }
 
-      // ========= RONDA 3 =========
-      if (roundIndex === 2) {
+      if (index === 2) {
         let final;
 
         if (ganador === "Parda") {
@@ -566,9 +513,7 @@ useEffect(() => {
           if (p1 > p2) final = "P1";
           else if (p2 > p1) final = "P2";
           else final = mano;
-        } else {
-          final = ganador;
-        }
+        } else final = ganador;
 
         state.finished = true;
         state.ganadorPartida = final;
@@ -578,15 +523,14 @@ useEffect(() => {
 
       return state;
     });
-  }, [table, truco.finished, truco.winners, truco.mano]);
+  }, [table, truco.mano, truco.finished]);
 
-  // ================== SUMAR PUNTOS ==================
   useEffect(() => {
     const g = truco.ganadorPartida;
     if (!g) return;
 
     if (g === "P1") setPointsP1((p) => p + 1);
-    if (g === "P2") setPointsP2((p) => p + 1);
+    else setPointsP2((p) => p + 1);
   }, [truco.ganadorPartida]);
 
   // ======================== RENDER ========================
@@ -598,44 +542,65 @@ useEffect(() => {
       }}
     >
       <AnotadorTruco puntosP1={pointsP1} puntosP2={pointsP2} />
-      {/* CANTOS — cartelitos ubicados entre el anotador y las cartas */}
-<div
-  style={{
-    position: "absolute",
-    top: "50%",
-    left: "360px",        // ⇐ posición exacta que marcaste en tu imagen
-    transform: "translateY(-50%)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    alignItems: "flex-start",
-    zIndex: 3000,
-    pointerEvents: "none", // no bloquea clicks sobre cartas
-  }}
->
-  {cantosLog.slice(-4).map((msg, i) => (
-    <div
-      key={i}
-      style={{
-        padding: "6px 12px",
-        borderRadius: "8px",
-        background: "rgba(0,0,0,0.75)",
-        color: "#fff",
-        fontSize: "14px",
-        border: "1px solid rgba(255,255,255,0.4)",
-        textShadow: "0 1px 2px rgba(0,0,0,0.9)",
-        whiteSpace: "pre-line",
-      }}
-    >
-      {msg}
-    </div>
-  ))}
-</div>
 
+      {/* Humo ambiental */}
+      <div className="humo-truco"></div>
+
+      {/* CANTOS — cartelitos a la izquierda */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "360px",
+          transform: "translateY(-50%)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          zIndex: 3000,
+          pointerEvents: "none",
+        }}
+      >
+        {cantosLog.slice(-4).map((msg, i) => {
+          let texto = msg;
+          const lower = msg.toLowerCase();
+
+          // Simplificamos solo los "quiero/no quiero"
+          if (lower.includes("no quiero al ")) texto = "No quiero";
+          if (lower.includes("quiero al ")) texto = "Quiero";
+
+          const esJugador = msg.startsWith("Vos");
+          const esBot = msg.startsWith("Bot");
+
+          const estilo = {
+            padding: "6px 12px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            color: "#fff",
+            border: "1px solid rgba(255,255,255,0.4)",
+            background: "rgba(0,0,0,0.75)",
+            textShadow: "0 1px 2px rgba(0,0,0,0.9)",
+          };
+
+          if (esJugador) {
+            estilo.background = "rgba(0, 90, 140, 0.85)";
+            estilo.border = "1px solid rgba(100,180,255,0.8)";
+          }
+          if (esBot) {
+            estilo.background = "rgba(140, 0, 0, 0.85)";
+            estilo.border = "1px solid rgba(255,120,120,0.8)";
+          }
+
+          return (
+            <div key={i} style={estilo}>
+              {texto}
+            </div>
+          );
+        })}
+      </div>
 
       {/* CARTAS EN LA MESA */}
       <div className="mesa25d-center">
-      {table.map((t, i) => (
+        {table.map((t, i) => (
           <Card
             key={i}
             img={t.card.img}
@@ -645,7 +610,6 @@ useEffect(() => {
               top: "-20px",
               left: `${i * 40}px`,
               transform: "translate(-50%, -50%) scale(1.5)",
-
               zIndex: 50 + i,
             }}
           />
@@ -657,7 +621,6 @@ useEffect(() => {
         {hands[1].map((card, i) => (
           <Card
             key={card.id}
-            img={card.img}
             faceUp={false}
             style={{
               position: "relative",
@@ -669,38 +632,24 @@ useEffect(() => {
       </div>
 
       {/* TU MANO */}
-      <div
-        className="player-hand-25d"
-        style={{
-          position: "absolute",
-          bottom: "40px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          gap: "15px",
-        }}
-      >
+      <div className="player-hand-25d">
         {hands[0].map((card, i) => (
           <Card
             key={card.id}
             img={card.img}
-                        faceUp={showPlayerCards}
-
+            faceUp={showPlayerCards}
             onClick={() => playCard(0, i)}
             style={{
-  position: "relative",
-  transform: `scale(1.5) rotate(${(i - 1) * 12}deg)`,
-  zIndex: 50 + i,
-}}
-
-            
+              position: "relative",
+              transform: `scale(1.5) rotate(${(i - 1) * 12}deg)`,
+              zIndex: 50 + i,
+            }}
           />
         ))}
       </div>
 
       {/* MENÚ LATERAL */}
       <div className="side-menu-25d">
-        {/* TRUCO: solo si no hay canto y es tu turno */}
         <button
           className="action-btn"
           disabled={
@@ -724,7 +673,6 @@ useEffect(() => {
           Truco
         </button>
 
-        {/* RE TRUCO: solo si el último canto fue Truco del BOT */}
         <button
           className="action-btn"
           disabled={
@@ -748,7 +696,6 @@ useEffect(() => {
           Re Truco
         </button>
 
-        {/* VALE CUATRO: solo si el último canto fue Re Truco del BOT */}
         <button
           className="action-btn"
           disabled={
@@ -772,7 +719,6 @@ useEffect(() => {
           Vale Cuatro
         </button>
 
-        {/* Envidos los dejamos desactivados por ahora */}
         <button className="action-btn" disabled>
           Envido
         </button>
@@ -786,19 +732,19 @@ useEffect(() => {
           Flor
         </button>
 
-        {/* QUERER (cuando el BOT te cantó algo) */}
+        {/* QUIERO */}
         <button
           className="action-btn"
           disabled={!truco.esperandoRespuesta || truco.turno !== "P1"}
           onClick={() => {
-            const texto =
+            const txt =
               truco.cantoNivel === 1
                 ? "Vos: Quiero al Truco"
                 : truco.cantoNivel === 2
                 ? "Vos: Quiero al Re Truco"
                 : "Vos: Quiero al Vale Cuatro";
 
-            setCantosLog((prev) => [...prev, texto]);
+            setCantosLog((prev) => [...prev, txt]);
 
             setTruco((prev) => ({
               ...prev,
@@ -810,19 +756,19 @@ useEffect(() => {
           Quiero
         </button>
 
-        {/* NO QUERER */}
+        {/* NO QUIERO */}
         <button
           className="action-btn"
           disabled={!truco.esperandoRespuesta || truco.turno !== "P1"}
           onClick={() => {
-            const texto =
+            const txt =
               truco.cantoNivel === 1
                 ? "Vos: No quiero al Truco"
                 : truco.cantoNivel === 2
                 ? "Vos: No quiero al Re Truco"
                 : "Vos: No quiero al Vale Cuatro";
 
-            setCantosLog((prev) => [...prev, texto]);
+            setCantosLog((prev) => [...prev, txt]);
 
             const puntos =
               truco.cantoNivel === 1
@@ -844,6 +790,22 @@ useEffect(() => {
         >
           No quiero
         </button>
+        <button
+  className="action-btn"
+  onClick={() => {
+    setCantosLog(prev => [...prev, "Vos: Me voy al mazo"]);
+    setPointsP2(p => p + 1);      // BOT suma 1 punto
+    setTruco(prev => ({
+      ...prev,
+      finished: true,
+      ganadorPartida: "P2",
+      turno: null,
+    }));
+  }}
+>
+  Me voy al mazo
+</button>
+
 
         <div
           style={{
@@ -854,7 +816,7 @@ useEffect(() => {
           }}
         />
 
-       <button
+        <button
           className="system-btn"
           onClick={deal}
           disabled={isDealing}

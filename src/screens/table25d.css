@@ -8,28 +8,38 @@
   overflow: hidden;
 }
 
-/* Título superior */
-.mesa25d-title {
-  font-size: 42px;
-  font-weight: 900;
-  color: white;
-  text-shadow: 0px 0px 8px black, 2px 2px 4px rgba(0,0,0,0.4);
-  text-align: center;
-  margin-top: 20px;
-  letter-spacing: 3px;
+/* Luz suave sobre la mesa */
+.mesa25d-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(0, 0, 0, 0.55) 70%
+  );
+  pointer-events: none;
+  z-index: 5; /* debajo del humo, encima del fondo */
 }
 
-/* Mesa con perspectiva */
-.mesa25d-tapete {
-  width: 85%;
-  height: 50vh;
-  background: rgba(0, 80, 0, 0.85);
-  border: 12px solid #3b2a18;
-  border-radius: 20px;
-  margin: 40px auto 0 auto;
-  box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.7);
-  transform: perspective(900px) rotateX(12deg);
-  position: relative;
+/* Humo ambiental */
+.humo-truco {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: url('../assets/effects/humo.png') center/cover no-repeat;
+  opacity: 0.10;
+  animation: humoMovimiento 18s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 20; /* debajo de las cartas, encima del spotlight */
+}
+
+@keyframes humoMovimiento {
+  0%   { transform: translateX(0px) translateY(0px) scale(1); }
+  50%  { transform: translateX(-20px) translateY(10px) scale(1.03); }
+  100% { transform: translateX(0px) translateY(0px) scale(1); }
 }
 
 /* Mano del Oponente */
@@ -41,6 +51,7 @@
   display: flex;
   gap: 25px;
   opacity: 0.8;
+  z-index: 100; /* encima del humo */
 }
 
 /* Cartas jugadas */
@@ -52,6 +63,7 @@
   width: 260px;
   height: 180px;
   pointer-events: none;
+  z-index: 120; /* cartas de la mesa */
 }
 
 /* Mano del jugador */
@@ -62,41 +74,35 @@
   transform: translateX(-50%);
   display: flex;
   gap: 40px;
-  transform-style: preserve-3d;
   perspective: 1400px;
+  transform-style: preserve-3d;
+  z-index: 150; /* cartas del jugador */
 }
 
+/* Menú lateral */
 .side-menu-25d {
   position: absolute;
-  right: 20px;
- top: 40px;
+  right: 100px;
+  top: 40px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  z-index: 2000; /* siempre arriba */
 }
 
 .action-btn {
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   padding: 10px 18px;
   border-radius: 10px;
   font-size: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: 0.2s;
 }
 
 .action-btn:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-.control-bar-25d {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 20px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .system-btn {

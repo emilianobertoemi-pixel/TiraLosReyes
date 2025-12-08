@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import MainHeader from "../components/MainHeader";   // ← IMPORTA EL HEADER CORRECTO
 
 export default function MenuPrincipal() {
   const navigate = useNavigate();
@@ -8,22 +9,25 @@ export default function MenuPrincipal() {
   return (
     <div className="relative w-screen h-screen overflow-hidden">
 
-      {/* Fondo */}
+      {/* === HEADER SUPERIOR REAL (CON MODAL) === */}
+      <MainHeader />
+
+      {/* === FONDO === */}
       <img
         src="/fondo-menu.jpg"
         alt="fondo"
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
 
-      {/* Contenedor del menú */}
-      <div className="absolute top-8 right-8 z-10">
+      {/* === CONTENEDOR DEL MENÚ PRINCIPAL === */}
+      <div className="absolute top-24 right-8 z-10">
         <div className="bg-[#f3e0c7] bg-opacity-95 border-4 border-[#5e3d21] rounded-2xl shadow-2xl p-6 w-80">
 
           <h1 className="text-3xl font-bold text-[#4a2e0a] text-center mb-6">
             Menú Principal
           </h1>
 
-          {/* MENÚ PRINCIPAL */}
+          {/* === MENÚ PRINCIPAL === */}
           {!showSubmenu && (
             <div className="flex flex-col gap-4">
 
@@ -65,50 +69,48 @@ export default function MenuPrincipal() {
             </div>
           )}
 
-          {/* SUBMENÚ (cuando aprieta JUGAR) */}
+          {/* === SUBMENÚ (OPCIONES DE JUEGO) === */}
           {showSubmenu && (
-  <div className="flex flex-col gap-4 animate-card">
+            <div className="flex flex-col gap-4 animate-card">
 
-    <button
-      onClick={() => navigate("/table?players=2")}
-      className="bg-[#4a2e0a] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
-                 border border-[#2a1807] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
-                 hover:bg-[#61401b] hover:scale-105 transition-transform duration-150"
-    >
-      Mesa de 2 jugadores
-    </button>
+              <button
+                onClick={() => navigate("/table?players=2")}
+                className="bg-[#4a2e0a] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
+                           border border-[#2a1807] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
+                           hover:bg-[#61401b] hover:scale-105 transition-transform duration-150"
+              >
+                Mesa de 2 jugadores
+              </button>
 
-    <button
-      onClick={() => navigate("/table?players=4")}
-      className="bg-[#4a2e0a] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
-                 border border-[#2a1807] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
-                 hover:bg-[#61401b] hover:scale-105 transition-transform duration-150"
-    >
-      Mesa de 4 jugadores
-    </button>
+              <button
+                onClick={() => navigate("/table?players=4")}
+                className="bg-[#4a2e0a] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
+                           border border-[#2a1807] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
+                           hover:bg-[#61401b] hover:scale-105 transition-transform duration-150"
+              >
+                Mesa de 4 jugadores
+              </button>
 
-    <button
-      onClick={() => navigate("/table?players=6")}
-      className="bg-[#4a2e0a] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
-                 border border-[#2a1807] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
-                 hover:bg-[#61401b] hover:scale-105 transition-transform duration-150"
-    >
-      Mesa de 6 jugadores
-    </button>
+              <button
+                onClick={() => navigate("/table?players=6")}
+                className="bg-[#4a2e0a] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
+                           border border-[#2a1807] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
+                           hover:bg-[#61401b] hover:scale-105 transition-transform duration-150"
+              >
+                Mesa de 6 jugadores
+              </button>
 
-    <button
-      onClick={() => setShowSubmenu(false)}
-      className="bg-[#a63e3e] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
-                 border border-[#632020] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
-                 hover:bg-[#c45151] hover:scale-105 transition-transform duration-150"
-    >
-      Volver
-    </button>
+              <button
+                onClick={() => setShowSubmenu(false)}
+                className="bg-[#a63e3e] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
+                           border border-[#632020] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
+                           hover:bg-[#c45151] hover:scale-105 transition-transform duration-150"
+              >
+                Volver
+              </button>
 
-  </div>
-)}
-
-
+            </div>
+          )}
 
         </div>
       </div>

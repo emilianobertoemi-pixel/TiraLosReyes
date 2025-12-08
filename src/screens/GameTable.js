@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function GameTable() {
@@ -10,6 +10,23 @@ export default function GameTable() {
   // crear array de jugadores
   const playerList = Array.from({ length: players }, (_, i) => i + 1);
 
+  // === AUDIO AMBIENTE ===
+  const audioRef = useRef(null);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.25;
+      audioRef.current.loop = true;
+      audioRef.current.play().catch(() => {
+        // navegador bloquea autoplay hasta interacción
+      });
+    }
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, []);
+
   return (
     <div
       className="min-h-screen flex flex-col items-center p-6"
@@ -20,28 +37,48 @@ export default function GameTable() {
       }}
     >
 
+      {/* AUDIO */}
+      <audio
+        ref={audioRef}
+        src="/assets/audio/sala-ambiente.mp3"
+        preload="auto"
+      />
+
+      {/* BOTÓN SONIDO */}
+      <div className="absolute bottom-5 left-5 z-50">
+        <button
+          onClick={() => {
+            setMuted(!muted);
+            if (audioRef.current) audioRef.current.muted = !muted;
+          }}
+          className="bg-black/60 text-white px-4 py-2 rounded-lg text-2xl 
+                     hover:bg-black/80 transition shadow-lg"
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
+      </div>
+
       {/* ESPACIO PARA SEPARAR DEL BORDE SUPERIOR */}
       <div style={{ height: "6vh" }} />
 
       {/* ⭐ TÍTULO DEL JUEGO SOBRE LA MESA ⭐ */}
-<h1
-  style={{
-    position: "absolute",
-    top: "49%",                // 👈🔥 ANTES: 32% — AHORA BAJADO 9 CM
-    left: "50%",
-    transform: "translateX(-50%)",
-    color: "#f4e4a1",
-    fontSize: "64px",
-    fontWeight: "900",
-    textShadow: "3px 3px 6px rgba(0,0,0,0.7)",
-    fontFamily: "'Cinzel', serif",
-    letterSpacing: "4px",
-    pointerEvents: "none",
-  }}
->
-  TIRA LOS REYES
-</h1>
-
+      <h1
+        style={{
+          position: "absolute",
+          top: "49%", // ubicado según tu preferencia guardada
+          left: "50%",
+          transform: "translateX(-50%)",
+          color: "#f4e4a1",
+          fontSize: "64px",
+          fontWeight: "900",
+          textShadow: "3px 3px 6px rgba(0,0,0,0.7)",
+          fontFamily: "'Cinzel', serif",
+          letterSpacing: "4px",
+          pointerEvents: "none",
+        }}
+      >
+        TIRA LOS REYES
+      </h1>
 
       {/* TÍTULO ORIGINAL (nombre de la mesa) */}
       <div className="mt-6 text-center">
@@ -54,7 +91,7 @@ export default function GameTable() {
         </h2>
       </div>
 
-      {/* ESPACIO DONDE ESTÁ LA MESA (no se toca) */}
+      {/* ESPACIO DONDE ESTÁ LA MESA */}
       <div style={{ height: "45vh" }} />
 
       {/* JUGADORES ABAJO EN LÍNEA */}

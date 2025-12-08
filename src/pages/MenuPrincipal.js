@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainHeader from "../components/MainHeader";   // ← IMPORTA EL HEADER CORRECTO
 
@@ -6,11 +6,47 @@ export default function MenuPrincipal() {
   const navigate = useNavigate();
   const [showSubmenu, setShowSubmenu] = useState(false);
 
+  // === AUDIO ===
+  const audioRef = useRef(null);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.2; // volumen suave
+      audioRef.current.play().catch(() => {
+        // Chrome puede bloquear autoplay hasta el primer click
+      });
+    }
+  }, []);
+
   return (
     <div className="relative w-screen h-screen overflow-hidden">
 
-      {/* === HEADER SUPERIOR REAL (CON MODAL) === */}
+      {/* === AUDIO DE FONDO === */}
+      <audio
+        ref={audioRef}
+        src="/assets/audio/menu-theme.mp3"
+        loop
+      />
+
+      
+      {/* === HEADER === */}
       <MainHeader />
+      {/* === BOTÓN DE SONIDO === */}
+<div className="absolute top-20 left-5 z-50">
+  <button
+    onClick={() => {
+      setMuted(!muted);
+      if (audioRef.current) audioRef.current.muted = !muted;
+    }}
+    className="bg-black/60 text-white px-4 py-2 rounded-lg text-2xl 
+               hover:bg-black/80 transition shadow-lg"
+  >
+    {muted ? "🔇" : "🔊"}
+  </button>
+</div>
+
+
 
       {/* === FONDO === */}
       <img
@@ -69,7 +105,7 @@ export default function MenuPrincipal() {
             </div>
           )}
 
-          {/* === SUBMENÚ (OPCIONES DE JUEGO) === */}
+          {/* === SUBMENÚ === */}
           {showSubmenu && (
             <div className="flex flex-col gap-4 animate-card">
 

@@ -39,6 +39,11 @@ export default function MainHeader() {
   const [showPerfilMenu, setShowPerfilMenu] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showChangeNameModal, setShowChangeNameModal] = useState(false);
+  const [showChangePassModal, setShowChangePassModal] = useState(false);
+
+  const fileInputRef = useRef(null);
+
+
 
   const profileMenuRef = useRef(null);
 
@@ -148,6 +153,43 @@ export default function MainHeader() {
     alert("Nombre actualizado con éxito.");
     setShowChangeNameModal(false);
   };
+  const handleChangePassword = () => {
+  const actual = document.getElementById("pass_actual")?.value.trim();
+  const nueva = document.getElementById("pass_nueva")?.value.trim();
+  const repetir = document.getElementById("pass_repetir")?.value.trim();
+
+  const user = obtenerUsuario();
+
+  // Validaciones
+  if (!actual || actual !== user.password) {
+    alert("La contraseña actual es incorrecta.");
+    return;
+  }
+
+  if (!nueva || !repetir) {
+    alert("Debés completar todos los campos.");
+    return;
+  }
+
+  if (nueva !== repetir) {
+    alert("Las contraseñas nuevas no coinciden.");
+    return;
+  }
+
+  if (nueva.length < 4) {
+    alert("La nueva contraseña debe tener al menos 4 caracteres.");
+    return;
+  }
+
+  // Guardar nueva contraseña
+  const actualizado = { ...user, password: nueva };
+  registrarUsuario(actualizado);
+  setUsuario(actualizado);
+
+  alert("Contraseña actualizada con éxito.");
+  setShowChangePassModal(false);
+};
+
 
   /* ============== GUARDAR AVATAR AHORA FUNCIONA ================== */
   const seleccionarAvatar = (src) => {
@@ -159,6 +201,28 @@ export default function MainHeader() {
     setUsuario(actualizado);
     setShowAvatarModal(false);
   };
+  const handleUploadAvatar = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = reader.result;
+
+    const user = obtenerUsuario();
+    if (!user) return;
+
+    // Guardar en el usuario
+    const actualizado = { ...user, avatar: base64 };
+    registrarUsuario(actualizado);
+    setUsuario(actualizado);
+
+    setShowAvatarModal(false);
+  };
+
+  reader.readAsDataURL(file); // convierte la imagen a base64
+};
+
 
   /* ======================= RENDER ======================= */
 
@@ -196,7 +260,13 @@ export default function MainHeader() {
                     <button onClick={() => setShowChangeNameModal(true)} className="hover:text-yellow-300 text-left">
                       Cambiar nombre de usuario
                     </button>
-                    <button className="hover:text-yellow-300 text-left">Cambiar contraseña</button>
+                    <button
+  className="hover:text-yellow-300 text-left"
+  onClick={() => setShowChangePassModal(true)}
+>
+  Cambiar contraseña
+</button>
+
                     <button onClick={() => setShowAvatarModal(true)} className="hover:text-yellow-300 text-left">
                       Cambiar foto de perfil
                     </button>
@@ -249,6 +319,54 @@ export default function MainHeader() {
           </div>
         </div>
       )}
+      {/* ===================== MODAL CAMBIAR CONTRASEÑA ===================== */}
+{showChangePassModal && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-white p-8 rounded-xl shadow-2xl w-[420px] relative">
+
+      <button
+        onClick={() => setShowChangePassModal(false)}
+        className="absolute top-3 right-3 text-xl"
+      >
+        ✖
+      </button>
+
+      <h2 className="text-2xl font-bold text-center mb-6">
+        Cambiar contraseña
+      </h2>
+
+      <input
+        id="pass_actual"
+        type="password"
+        placeholder="Contraseña actual"
+        className="w-full border p-3 rounded mb-4"
+      />
+
+      <input
+        id="pass_nueva"
+        type="password"
+        placeholder="Nueva contraseña"
+        className="w-full border p-3 rounded mb-4"
+      />
+
+      <input
+        id="pass_repetir"
+        type="password"
+        placeholder="Repetir nueva contraseña"
+        className="w-full border p-3 rounded mb-4"
+      />
+
+      <button
+        onClick={handleChangePassword}
+        className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
+      >
+        Guardar Cambios
+      </button>
+
+    </div>
+  </div>
+)}
+
 
       {/* ===================== MODAL AVATARES ===================== */}
       {showAvatarModal && (
@@ -262,6 +380,25 @@ export default function MainHeader() {
                 <img key={i} src={src} className="cursor-pointer w-20 h-20 rounded-full border hover:border-yellow-400" onClick={() => seleccionarAvatar(src)} />
               ))}
             </div>
+            {/* --- OPCIÓN DE SUBIR AVATAR DESDE LA PC --- */}
+<div
+  className="cursor-pointer w-20 h-20 rounded-full border-2 border-dashed border-gray-400 
+             flex items-center justify-center text-3xl text-gray-500 hover:border-yellow-400
+             hover:text-yellow-400 transition"
+  onClick={() => fileInputRef.current.click()}
+>
+  +
+</div>
+
+{/* input realmente oculto */}
+<input
+  type="file"
+  accept="image/*"
+  ref={fileInputRef}
+  className="hidden"
+  onChange={handleUploadAvatar}
+/>
+
           </div>
         </div>
       )}

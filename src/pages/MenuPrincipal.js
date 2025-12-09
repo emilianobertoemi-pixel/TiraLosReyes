@@ -82,7 +82,7 @@ export default function MenuPrincipal() {
                            border border-[#3e2714] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
                            hover:bg-[#835b34] hover:scale-105 transition-transform duration-150"
               >
-                Personalizar Mazos
+                Mazos
               </button>
 
               <button
@@ -90,9 +90,12 @@ export default function MenuPrincipal() {
                 className="bg-[#6b4a2b] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold
                            border border-[#3e2714] shadow-[0_4px_6px_rgba(0,0,0,0.4)]
                            hover:bg-[#835b34] hover:scale-105 transition-transform duration-150"
+
+                           
               >
-                Ajustes
+                Ranking
               </button>
+              
 
               <button
                 className="bg-[#a63e3e] text-[#fcecc2] py-3 rounded-xl text-xl font-semibold

@@ -7,6 +7,9 @@ import "./table25d.css";
 import { generateDeck, shuffle } from "../data/deck";
 import { determineHandWinner } from "../gameLogic/truco/determineHandWinner";
 
+import audioManager from "../audio/AudioManager";
+
+
 // Evalúa la fuerza de la mano del BOT (para cantos)
 function evaluateBotHand(hand) {
   if (!hand || hand.length === 0) {
@@ -212,6 +215,10 @@ export default function GameTable25D() {
   }, [isDealing, dealIndex, dealQueue]);
 
   const deal = () => {
+
+    // 🔊 SONIDO DE REPARTO
+  audioManager.play("cardDeal");
+
     const d = [...shuffle(generateDeck())];
 
     setHands([[], []]);
@@ -264,6 +271,9 @@ export default function GameTable25D() {
     setHands(newHands);
 
     setTable((prev) => [...prev, { from: playerIndex, card: carta }]);
+
+    // 🔊 SONIDO DE CARTA
+  audioManager.play("cardPlay");
 
     setTruco((prev) => ({
       ...prev,
@@ -872,6 +882,9 @@ if (!canBotAct) {
             truco.turno !== "P1"
           }
           onClick={() => {
+
+            audioManager.play("truco");
+
             setCantosLog((prev) => [...prev, "Vos: Truco"]);
             setTruco((prev) => ({
               ...prev,
@@ -897,6 +910,9 @@ if (!canBotAct) {
             truco.quienCanto !== "P2"
           }
           onClick={() => {
+
+          audioManager.play("reTruco");
+
             setCantosLog((prev) => [...prev, "Vos: Quiero Re Truco"]);
             setTruco((prev) => ({
               ...prev,
@@ -922,6 +938,10 @@ if (!canBotAct) {
             truco.quienCanto !== "P2"
           }
           onClick={() => {
+
+            audioManager.play("valeCuatro");
+
+          
             setCantosLog((prev) => [...prev, "Vos: Quiero Vale Cuatro"]);
             setTruco((prev) => ({
               ...prev,
